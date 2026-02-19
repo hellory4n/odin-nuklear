@@ -321,7 +321,7 @@ Chart_Type :: enum i32 {
 	COLUMN = 1,
 }
 
-Chart_Event_Flag :: enum i32 {
+Chart_Event :: enum i32 {
 	HOVERING = 0,
 	CLICKED  = 1,
 }
@@ -331,7 +331,7 @@ Color_Format :: enum i32 {
 	RGBA = 1,
 }
 
-Chart_Event :: bit_set[Chart_Event_Flag; i32]
+Chart_Event_Flags :: bit_set[Chart_Event; i32]
 
 Popup_Type :: enum i32 {
 	STATIC  = 0,
@@ -788,7 +788,21 @@ foreign lib {
 	_next :: proc(^Context, ^Command) -> ^Command ---
 }
 
-/** =============================================================================
+Panel_Flag :: enum i32 {
+	BORDER           = 0,
+	MOVABLE          = 1,
+	SCALABLE         = 2,
+	CLOSABLE         = 3,
+	MINIMIZABLE      = 4,
+	NO_SCROLLBAR     = 5,
+	TITLE            = 6,
+	SCROLL_AUTO_HIDE = 7,
+	BACKGROUND       = 8,
+	SCALE_LEFT       = 9,
+	NO_INPUT         = 10,
+}
+
+/* =============================================================================
 *
 *                                  WINDOW
 *
@@ -796,7 +810,7 @@ foreign lib {
 /**
 * \page Window
 * Windows are the main persistent state used inside nuklear and are life time
-* controlled by simply "retouching" (i.e. calling) each window each frame.
+* controlled by simply "retouching" (i.e.\ calling) each window each frame.
 * All widgets inside nuklear can only be added inside the function pair `nk_begin_xxx`
 * and `nk_end`. Calling any widgets outside these two functions will result in an
 * assert in debug or no state change in release mode.<br /><br />
@@ -873,12 +887,14 @@ foreign lib {
 * ```
 *
 * # Reference
-* Function                            | Description
-* ------------------------------------|----------------------------------------
+* Function                                 | Description
+* -----------------------------------------|----------------------------------------
 * \ref nk_begin                            | Starts a new window; needs to be called every frame for every window (unless hidden) or otherwise the window gets removed
 * \ref nk_begin_titled                     | Extended window start with separated title and identifier to allow multiple windows with same name but not title
 * \ref nk_end                              | Needs to be called at the end of the window building process to process scaling, scrollbars and general cleanup
 *
+* Function                                 | Description
+* -----------------------------------------|----------------------------------------
 * \ref nk_window_find                      | Finds and returns the window with give name
 * \ref nk_window_get_bounds                | Returns a rectangle with screen position and size of the currently processed window.
 * \ref nk_window_get_position              | Returns the position of the currently processed window
@@ -900,13 +916,17 @@ foreign lib {
 * \ref nk_window_is_hovered                | Returns if the currently processed window is currently being hovered by mouse
 * \ref nk_window_is_any_hovered            | Return if any window currently hovered
 * \ref nk_item_is_any_active               | Returns if any window or widgets is currently hovered or active
-//
+*
+* Function                                 | Description
+* -----------------------------------------|----------------------------------------
 * \ref nk_window_set_bounds                | Updates position and size of the currently processed window
 * \ref nk_window_set_position              | Updates position of the currently process window
 * \ref nk_window_set_size                  | Updates the size of the currently processed window
 * \ref nk_window_set_focus                 | Set the currently processed window as active window
 * \ref nk_window_set_scroll                | Sets the scroll offset of the current window
-//
+*
+* Function                                 | Description
+* -----------------------------------------|----------------------------------------
 * \ref nk_window_close                     | Closes the window with given window name which deletes the window at the end of the frame
 * \ref nk_window_collapse                  | Collapses the window with given window name
 * \ref nk_window_collapse_if               | Collapses the window with given window name if the given condition was met
@@ -934,20 +954,6 @@ foreign lib {
 * NK_MINIMIZED| UI section is collapsed and not visible until maximized
 * NK_MAXIMIZED| UI section is extended and visible until minimized
 */
-Panel_Flag :: enum i32 {
-	BORDER           = 0,
-	MOVABLE          = 1,
-	SCALABLE         = 2,
-	CLOSABLE         = 3,
-	MINIMIZABLE      = 4,
-	NO_SCROLLBAR     = 5,
-	TITLE            = 6,
-	SCROLL_AUTO_HIDE = 7,
-	BACKGROUND       = 8,
-	SCALE_LEFT       = 9,
-	NO_INPUT         = 10,
-}
-
 Panel_Flags :: bit_set[Panel_Flag; i32]
 
 @(default_calling_convention="c", link_prefix="nk_")
@@ -1576,7 +1582,7 @@ foreign lib {
 	* # # nk_window_show_if
 	* Line for visual separation. Draws a line with thickness determined by the current row height.
 	* ```c
-	* void nk_rule_horizontal(struct nk_context *ctx, struct nk_color color, NK_BOOL rounding)
+	* void nk_rule_horizontal(struct nk_context *ctx, struct nk_color color, nk_bool rounding)
 	* ```
 	*
 	* Parameter       | Description
@@ -1586,6 +1592,15 @@ foreign lib {
 	* \param[in] rounding    | Whether or not to make the line round
 	*/
 	rule_horizontal :: proc(ctx: ^Context, color: Color, rounding: bool) ---
+}
+
+Widget_Align :: enum i32 {
+	LEFT     = 0,
+	CENTERED = 1,
+	RIGHT    = 2,
+	TOP      = 3,
+	MIDDLE   = 4,
+	BOTTOM   = 5,
 }
 
 /* =============================================================================
@@ -1858,15 +1873,6 @@ foreign lib {
 * \ref nk_layout_space_rect_to_screen          | Converts rectangle from nk_layout_space coordinate space into screen space
 * \ref nk_layout_space_rect_to_local           | Converts rectangle from screen space into nk_layout_space coordinates
 */
-Widget_Align :: enum i32 {
-	LEFT     = 0,
-	CENTERED = 1,
-	RIGHT    = 2,
-	TOP      = 3,
-	MIDDLE   = 4,
-	BOTTOM   = 5,
-}
-
 Widget_Alignment :: bit_set[Widget_Align; i32]
 
 @(default_calling_convention="c", link_prefix="nk_")
@@ -2520,11 +2526,6 @@ foreign lib {
 	widget_disable_end          :: proc(ctx: ^Context) ---
 }
 
-/* =============================================================================
-*
-*                                  TEXT
-*
-* ============================================================================= */
 Text_Align :: enum i32 {
 	LEFT     = 0,
 	CENTERED = 1,
@@ -2534,6 +2535,11 @@ Text_Align :: enum i32 {
 	BOTTOM   = 5,
 }
 
+/* =============================================================================
+*
+*                                  TEXT
+*
+* ============================================================================= */
 Text_Alignment :: bit_set[Text_Align; i32]
 
 @(default_calling_convention="c", link_prefix="nk_")
@@ -2872,11 +2878,6 @@ foreign lib {
 	propertyd :: proc(_: ^Context, name: cstring, min: f64, val: f64, max: f64, step: f64, inc_per_pixel: f32) -> f64 ---
 }
 
-/* =============================================================================
-*
-*                                  TEXT EDIT
-*
-* ============================================================================= */
 Edit_Flag :: enum i32 {
 	READ_ONLY            = 0,
 	AUTO_SELECT          = 1,
@@ -2892,6 +2893,11 @@ Edit_Flag :: enum i32 {
 	GOTO_END_ON_ACTIVATE = 11,
 }
 
+/* =============================================================================
+*
+*                                  TEXT EDIT
+*
+* ============================================================================= */
 Edit_Flags :: bit_set[Edit_Flag; i32]
 
 Edit_Events :: enum i32 {
@@ -3392,7 +3398,7 @@ User_Font :: struct {
 	width:    Text_Width_F, /**!< font string width in pixel callback */
 }
 
-/** ==============================================================
+/* ==============================================================
 *
 *                          MEMORY BUFFER
 *
@@ -3488,7 +3494,7 @@ foreign lib {
 	buffer_total        :: proc(^Buffer) -> uint ---
 }
 
-/** ==============================================================
+/* ==============================================================
 *
 *                          STRING
 *
@@ -4599,6 +4605,10 @@ Property_State :: struct {
 	seq:          u32,
 	old:          u32,
 	state:        i32,
+	prev_state:   i32,
+	prev_name:    Hash,
+	prev_buffer:  [64]i8,
+	prev_length:  i32,
 }
 
 Window :: struct {
@@ -4718,8 +4728,8 @@ Configuration_Stacks :: struct {
 Table :: struct {
 	seq:        u32,
 	size:       u32,
-	keys:       [60]Hash,
-	values:     [60]u32,
+	keys:       [69]Hash,
+	values:     [69]u32,
 	next, prev: ^Table,
 }
 

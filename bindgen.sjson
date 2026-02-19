@@ -2,46 +2,46 @@ inputs = [
     "."
 ]
 
-package_name = "nuklear"
-
+package_name  = "nuklear"
 output_folder = "."
 
-remove_type_prefix = "nk_"
-remove_macro_prefix = "NK_"
+remove_type_prefix     = "nk_"
+remove_macro_prefix    = "NK_"
 remove_function_prefix = "nk_"
 
 rename = {
-    "nk_char" = "i8",
-    "nk_uchar" = "u8",
-    "nk_byte" = "byte",
-    "nk_short" = "i16",
-    "nk_ushort" = "u16",
-    "nk_int" = "i32",
-    "nk_uint" = "u32",
-    "nk_size" = "uint",
-    "nk_ptr" = "rawptr",
-    "nk_bool" = "bool",
-    "nk_hash" = "Hash",
-    "nk_flags" = "Flags",
-    "nk_rune" = "rune",
-    "nk_false" = "false",
-    "nk_true" = "true",
-    "nk_panel_flags" = "Panel_Flag",
-    "nk_text_align" = "Text_Align",
-    "nk_widget_align" = "Widget_Align",
-    "nk_edit_flags" = "Edit_Flag",
-    "nk_chart_event" = "Chart_Event_Flag",
-    "nk_recti" = "RectI",
-    "nk_vec2i" = "Vec2I",
+    "nk_char"         = "i8",
+    "nk_uchar"        = "u8",
+    "nk_byte"         = "byte",
+    "nk_short"        = "i16",
+    "nk_ushort"       = "u16",
+    "nk_int"          = "i32",
+    "nk_uint"         = "u32",
+    "nk_size"         = "uint",
+    "nk_ptr"          = "rawptr",
+    "nk_bool"         = "bool",
+    "nk_hash"         = "Hash",
+    "nk_flags"        = "Flags",
+    "nk_rune"         = "rune",
+    "nk_false"        = "false",
+    "nk_true"         = "true",
+    "nk_panel_flags"  = "Panel_Flags",
+    "nk_text_align"   = "Text_Alignment",
+    "nk_widget_align" = "Widget_Alignment",
+    "nk_edit_flags"   = "Edit_Flags",
+    "nk_chart_event"  = "Chart_Event_Flags",
+    "nk_recti"        = "RectI",
+    "nk_vec2i"        = "Vec2I",
 }
 
 type_overrides = {
-    "nk_color" = "[4]byte",
+    "nk_color"  = "[4]byte",
     "nk_colorf" = "[4]f32",
-    "nk_vec2" = "[2]f32",
-    "nk_vec2i" = "[2]i16",
-    "nk_collapse_states" = "enum i32 {\n    MINIMIZED = 0,\n    MAXIMIZED = 1,\n}",
+    "nk_vec2"   = "[2]f32",
+    "nk_vec2i"  = "[2]i16",
     
+    // NOTE: 'M' letter not included on generated odin enum.
+    "nk_collapse_states" = "enum i32 {\n    MINIMIZED = 0,\n    MAXIMIZED = 1,\n}",
 }
 
 remove = [
@@ -55,7 +55,6 @@ remove = [
     "nk_size",
     "nk_ptr",
     "nk_bool",
-    // "nk_flags",
     "nk_rune",
     "nk_anti_aliasing",
     "nk_draw_list_stroke",
@@ -83,7 +82,7 @@ remove_enum_members = [
 ]
 
 clang_defines = {
-	"NK_STATIC_ASSERT()" = "1",
+	"NK_STATIC_ASSERT(...)" = " ",
 	"NK_INCLUDE_FIXED_TYPES" = "1",
 	"NK_INCLUDE_STANDARD_BOOL" = "1",
 	"NK_INCLUDE_COMMAND_USERDATA" = "1",
@@ -91,11 +90,11 @@ clang_defines = {
 }
 
 bit_setify = {
-	"nk_panel_flags" = "Panel_Flags",
-	"nk_text_align" = "Text_Alignment",
-	"nk_widget_align" = "Widget_Alignment",
-	"nk_edit_flags" = "Edit_Flags",
-	"nk_chart_event" = "Chart_Event",
+	"nk_panel_flags"  = "Panel_Flag",
+	"nk_text_align"   = "Text_Align",
+	"nk_widget_align" = "Widget_Align",
+	"nk_edit_flags"   = "Edit_Flag",
+	"nk_chart_event"  = "Chart_Event",
 }
 
 procedure_type_overrides = {
