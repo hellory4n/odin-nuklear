@@ -1,222 +1,189 @@
-/*
-# Nuklear
-![](https://cloud.githubusercontent.com/assets/8057201/11761525/ae06f0ca-a0c6-11e5-819d-5610b25f6ef4.gif)
-
-## Contents
-1. About section
-2. Highlights section
-3. Features section
-4. Usage section
-    1. Flags section
-    2. Constants section
-    3. Dependencies section
-5. Example section
-6. API section
-    1. Context section
-    2. Input section
-    3. Drawing section
-    4. Window section
-    5. Layouting section
-    6. Groups section
-    7. Tree section
-    8. Properties section
-7. License section
-8. Changelog section
-9. Gallery section
-10. Credits section
-
-## About
-This is a minimal state immediate mode graphical user interface toolkit
-written in ANSI C and licensed under public domain. It was designed as a simple
-embeddable user interface for application and does not have any dependencies,
-a default renderbackend or OS window and input handling but instead provides a very modular
-library approach by using simple input state for input and draw
-commands describing primitive shapes as output. So instead of providing a
-layered library that tries to abstract over a number of platform and
-render backends it only focuses on the actual UI.
-
-## Highlights
-- Graphical user interface toolkit
-- Single header library
-- Written in C89 (a.k.a. ANSI C or ISO C90)
-- Small codebase (~18kLOC)
-- Focus on portability, efficiency and simplicity
-- No dependencies (not even the standard library if not wanted)
-- Fully skinnable and customizable
-- Low memory footprint with total memory control if needed or wanted
-- UTF-8 support
-- No global or hidden state
-- Customizable library modules (you can compile and use only what you need)
-- Optional font baker and vertex buffer output
-- [Code available on github](https://github.com/Immediate-Mode-UI/Nuklear/)
-
-## Features
-- Absolutely no platform dependent code
-- Memory management control ranging from/to
-    - Ease of use by allocating everything from standard library
-    - Control every byte of memory inside the library
-- Font handling control ranging from/to
-    - Use your own font implementation for everything
-    - Use this libraries internal font baking and handling API
-- Drawing output control ranging from/to
-    - Simple shapes for more high level APIs which already have drawing capabilities
-    - Hardware accessible anti-aliased vertex buffer output
-- Customizable colors and properties ranging from/to
-    - Simple changes to color by filling a simple color table
-    - Complete control with ability to use skinning to decorate widgets
-- Bendable UI library with widget ranging from/to
-    - Basic widgets like buttons, checkboxes, slider, ...
-    - Advanced widget like abstract comboboxes, contextual menus,...
-- Compile time configuration to only compile what you need
-    - Subset which can be used if you do not want to link or use the standard library
-- Can be easily modified to only update on user input instead of frame updates
-
-## Usage
-This library is self contained in one single header file and can be used either
-in header only mode or in implementation mode. The header only mode is used
-by default when included and allows including this header in other headers
-and does not contain the actual implementation. <br /><br />
-
-The implementation mode requires to define  the preprocessor macro
-NK_IMPLEMENTATION in *one* .c/.cpp file before #including this file, e.g.:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~C
-    #define NK_IMPLEMENTATION
-    #include "nuklear.h"
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Also optionally define the symbols listed in the section "OPTIONAL DEFINES"
-below in header and implementation mode if you want to use additional functionality
-or need more control over the library.
-
-!!! WARNING
-    Every time nuklear is included define the same compiler flags. This very important not doing so could lead to compiler errors or even worse stack corruptions.
-
-### Flags
-Flag                            | Description
---------------------------------|------------------------------------------
-NK_PRIVATE                      | If defined declares all functions as static, so they can only be accessed inside the file that contains the implementation
-NK_INCLUDE_FIXED_TYPES          | If defined it will include header `<stdint.h>` for fixed sized types otherwise nuklear tries to select the correct type. If that fails it will throw a compiler error and you have to select the correct types yourself.
-NK_INCLUDE_DEFAULT_ALLOCATOR    | If defined it will include header `<stdlib.h>` and provide additional functions to use this library without caring for memory allocation control and therefore ease memory management.
-NK_INCLUDE_STANDARD_IO          | If defined it will include header `<stdio.h>` and provide additional functions depending on file loading.
-NK_INCLUDE_STANDARD_VARARGS     | If defined it will include header <stdarg.h> and provide additional functions depending on file loading.
-NK_INCLUDE_STANDARD_BOOL        | If defined it will include header `<stdbool.h>` for nk_bool otherwise nuklear defines nk_bool as int.
-NK_INCLUDE_VERTEX_BUFFER_OUTPUT | Defining this adds a vertex draw command list backend to this library, which allows you to convert queue commands into vertex draw commands. This is mainly if you need a hardware accessible format for OpenGL, DirectX, Vulkan, Metal,...
-NK_INCLUDE_FONT_BAKING          | Defining this adds `stb_truetype` and `stb_rect_pack` implementation to this library and provides font baking and rendering. If you already have font handling or do not want to use this font handler you don't have to define it.
-NK_INCLUDE_DEFAULT_FONT         | Defining this adds the default font: ProggyClean.ttf into this library which can be loaded into a font atlas and allows using this library without having a truetype font
-NK_INCLUDE_COMMAND_USERDATA     | Defining this adds a userdata pointer into each command. Can be useful for example if you want to provide custom shaders depending on the used widget. Can be combined with the style structures.
-NK_BUTTON_TRIGGER_ON_RELEASE    | Different platforms require button clicks occurring either on buttons being pressed (up to down) or released (down to up). By default this library will react on buttons being pressed, but if you define this it will only trigger if a button is released.
-NK_ZERO_COMMAND_MEMORY          | Defining this will zero out memory for each drawing command added to a drawing queue (inside nk_command_buffer_push). Zeroing command memory is very useful for fast checking (using memcmp) if command buffers are equal and avoid drawing frames when nothing on screen has changed since previous frame.
-NK_UINT_DRAW_INDEX              | Defining this will set the size of vertex index elements when using NK_VERTEX_BUFFER_OUTPUT to 32bit instead of the default of 16bit
-NK_KEYSTATE_BASED_INPUT         | Define this if your backend uses key state for each frame rather than key press/release events
-NK_IS_WORD_BOUNDARY(c)          | Define this to a function macro that takes a single nk_rune (nk_uint) and returns true if it's a word separator. If not defined, uses the default definition (see nk_is_word_boundary())
-
-!!! WARNING
-    The following flags will pull in the standard C library:
-    - NK_INCLUDE_DEFAULT_ALLOCATOR
-    - NK_INCLUDE_STANDARD_IO
-    - NK_INCLUDE_STANDARD_VARARGS
-
-!!! WARNING
-    The following flags if defined need to be defined for both header and implementation:
-    - NK_INCLUDE_FIXED_TYPES
-    - NK_INCLUDE_DEFAULT_ALLOCATOR
-    - NK_INCLUDE_STANDARD_VARARGS
-    - NK_INCLUDE_STANDARD_BOOL
-    - NK_INCLUDE_VERTEX_BUFFER_OUTPUT
-    - NK_INCLUDE_FONT_BAKING
-    - NK_INCLUDE_DEFAULT_FONT
-    - NK_INCLUDE_STANDARD_VARARGS
-    - NK_INCLUDE_COMMAND_USERDATA
-    - NK_UINT_DRAW_INDEX
-
-### Constants
-Define                          | Description
---------------------------------|---------------------------------------
-NK_BUFFER_DEFAULT_INITIAL_SIZE  | Initial buffer size allocated by all buffers while using the default allocator functions included by defining NK_INCLUDE_DEFAULT_ALLOCATOR. If you don't want to allocate the default 4k memory then redefine it.
-NK_MAX_NUMBER_BUFFER            | Maximum buffer size for the conversion buffer between float and string Under normal circumstances this should be more than sufficient.
-NK_INPUT_MAX                    | Defines the max number of bytes which can be added as text input in one frame. Under normal circumstances this should be more than sufficient.
-
-!!! WARNING
-    The following constants if defined need to be defined for both header and implementation:
-    - NK_MAX_NUMBER_BUFFER
-    - NK_BUFFER_DEFAULT_INITIAL_SIZE
-    - NK_INPUT_MAX
-
-### Dependencies
-Function    | Description
-------------|---------------------------------------------------------------
-NK_ASSERT   | If you don't define this, nuklear will use <assert.h> with assert().
-NK_MEMSET   | You can define this to 'memset' or your own memset implementation replacement. If not nuklear will use its own version.
-NK_MEMCPY   | You can define this to 'memcpy' or your own memcpy implementation replacement. If not nuklear will use its own version.
-NK_INV_SQRT | You can define this to your own inverse sqrt implementation replacement. If not nuklear will use its own slow and not highly accurate version.
-NK_SIN      | You can define this to 'sinf' or your own sine implementation replacement. If not nuklear will use its own approximation implementation.
-NK_COS      | You can define this to 'cosf' or your own cosine implementation replacement. If not nuklear will use its own approximation implementation.
-NK_STRTOD   | You can define this to `strtod` or your own string to double conversion implementation replacement. If not defined nuklear will use its own imprecise and possibly unsafe version (does not handle nan or infinity!).
-NK_DTOA     | You can define this to `dtoa` or your own double to string conversion implementation replacement. If not defined nuklear will use its own imprecise and possibly unsafe version (does not handle nan or infinity!).
-NK_VSNPRINTF| If you define `NK_INCLUDE_STANDARD_VARARGS` as well as `NK_INCLUDE_STANDARD_IO` and want to be safe define this to `vsnprintf` on compilers supporting later versions of C or C++. By default nuklear will check for your stdlib version in C as well as compiler version in C++. if `vsnprintf` is available it will define it to `vsnprintf` directly. If not defined and if you have older versions of C or C++ it will be defined to `vsprintf` which is unsafe.
-
-!!! WARNING
-    The following dependencies will pull in the standard C library if not redefined:
-    - NK_ASSERT
-
-!!! WARNING
-    The following dependencies if defined need to be defined for both header and implementation:
-    - NK_ASSERT
-
-!!! WARNING
-    The following dependencies if defined need to be defined only for the implementation part:
-    - NK_MEMSET
-    - NK_MEMCPY
-    - NK_SQRT
-    - NK_SIN
-    - NK_COS
-    - NK_STRTOD
-    - NK_DTOA
-    - NK_VSNPRINTF
-
-## Example
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~c
-// init gui state
-enum {EASY, HARD};
-static int op = EASY;
-static float value = 0.6f;
-static int i =  20;
-struct nk_context ctx;
-
-nk_init_fixed(&ctx, calloc(1, MAX_MEMORY), MAX_MEMORY, &font);
-if (nk_begin(&ctx, "Show", nk_rect(50, 50, 220, 220),
-    NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_CLOSABLE)) {
-    // fixed widget pixel width
-    nk_layout_row_static(&ctx, 30, 80, 1);
-    if (nk_button_label(&ctx, "button")) {
-        // event handling
-    }
-
-    // fixed widget window ratio width
-    nk_layout_row_dynamic(&ctx, 30, 2);
-    if (nk_option_label(&ctx, "easy", op == EASY)) op = EASY;
-    if (nk_option_label(&ctx, "hard", op == HARD)) op = HARD;
-
-    // custom widget pixel width
-    nk_layout_row_begin(&ctx, NK_STATIC, 30, 2);
-    {
-        nk_layout_row_push(&ctx, 50);
-        nk_label(&ctx, "Volume:", NK_TEXT_LEFT);
-        nk_layout_row_push(&ctx, 110);
-        nk_slider_float(&ctx, 0, &value, 1.0f, 0.1f);
-    }
-    nk_layout_row_end(&ctx);
-}
-nk_end(&ctx);
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-![](https://cloud.githubusercontent.com/assets/8057201/10187981/584ecd68-675c-11e5-897c-822ef534a876.png)
-
-## API
-
-*/
+/**
+ * Nuklear
+ * Single-header ANSI C immediate mode cross-platform GUI library.
+ *
+ * VERSION:
+ *     v4.13.3
+ *
+ * HOMEPAGE:
+ *     https://github.com/Immediate-Mode-UI/Nuklear/
+ *
+ * ABOUT:
+ *     This is a minimal state immediate mode graphical user interface toolkit
+ *     written in ANSI C and licensed under public domain. It was designed as a simple
+ *     embeddable user interface for application and does not have any dependencies,
+ *     a default renderbackend or OS window and input handling but instead provides a very modular
+ *     library approach by using simple input state for input and draw
+ *     commands describing primitive shapes as output. So instead of providing a
+ *     layered library that tries to abstract over a number of platform and
+ *     render backends it only focuses on the actual UI.
+ *
+ * HIGHLIGHTS:
+ *     - Graphical user interface toolkit
+ *     - Single header library
+ *     - Written in C89 (a.k.a. ANSI C or ISO C90)
+ *     - Small codebase (~18kLOC)
+ *     - Focus on portability, efficiency and simplicity
+ *     - No dependencies (not even the standard library if not wanted)
+ *     - Fully skinnable and customizable
+ *     - Low memory footprint with total memory control if needed or wanted
+ *     - UTF-8 support
+ *     - No global or hidden state
+ *     - Customizable library modules (you can compile and use only what you need)
+ *     - Optional font baker and vertex buffer output
+ *
+ * FEATURES:
+ *    - Absolutely no platform dependent code
+ *    - Memory management control ranging from/to
+ *        - Ease of use by allocating everything from standard library
+ *        - Control every byte of memory inside the library
+ *    - Font handling control ranging from/to
+ *        - Use your own font implementation for everything
+ *        - Use this libraries internal font baking and handling API
+ *    - Drawing output control ranging from/to
+ *        - Simple shapes for more high level APIs which already have drawing capabilities
+ *        - Hardware accessible anti-aliased vertex buffer output
+ *    - Customizable colors and properties ranging from/to
+ *        - Simple changes to color by filling a simple color table
+ *        - Complete control with ability to use skinning to decorate widgets
+ *    - Bendable UI library with widget ranging from/to
+ *        - Basic widgets like buttons, checkboxes, slider, ...
+ *        - Advanced widget like abstract comboboxes, contextual menus,...
+ *    - Compile time configuration to only compile what you need
+ *        - Subset which can be used if you do not want to link or use the standard library
+ *    - Can be easily modified to only update on user input instead of frame updates
+ *
+ * USAGE:
+ * This library is self contained in one single header file and can be used either
+ * in header only mode or in implementation mode. The header only mode is used
+ * by default when included and allows including this header in other headers
+ * and does not contain the actual implementation.
+ * The implementation mode requires to define the preprocessor macro
+ * NK_IMPLEMENTATION in *one* .c/.cpp file before #including this file, e.g.:
+ *
+ *     #define NK_IMPLEMENTATION
+ *     #include "nuklear.h"
+ *
+ * Also optionally define the symbols listed in the section "OPTIONAL DEFINES"
+ * below in header and implementation mode if you want to use additional functionality
+ * or need more control over the library.
+ *
+ * @warning Every time nuklear is included define the same compiler flags. This is very
+ * important — not doing so could lead to compiler errors or even worse stack corruptions.
+ *
+ * @subsection flags Flags
+ * Flag                            | Description
+ * --------------------------------|------------------------------------------
+ * NK_PRIVATE                      | If defined declares all functions as static, so they can only be accessed inside the file that contains the implementation
+ * NK_INCLUDE_FIXED_TYPES          | If defined it will include header `<stdint.h>` for fixed sized types otherwise nuklear tries to select the correct type. If that fails it will throw a compiler error and you have to select the correct types yourself.
+ * NK_INCLUDE_DEFAULT_ALLOCATOR    | If defined it will include header `<stdlib.h>` and provide additional functions to use this library without caring for memory allocation control and therefore ease memory management.
+ * NK_INCLUDE_STANDARD_IO          | If defined it will include header `<stdio.h>` and provide additional functions depending on file loading.
+ * NK_INCLUDE_STANDARD_VARARGS     | If defined it will include header `<stdarg.h>` and provide additional functions depending on file loading.
+ * NK_INCLUDE_STANDARD_BOOL        | If defined it will include header `<stdbool.h>` for nk_bool otherwise nuklear defines nk_bool as int.
+ * NK_INCLUDE_VERTEX_BUFFER_OUTPUT | Defining this adds a vertex draw command list backend to this library, which allows you to convert queue commands into vertex draw commands. This is mainly if you need a hardware accessible format for OpenGL, DirectX, Vulkan, Metal,...
+ * NK_INCLUDE_FONT_BAKING          | Defining this adds `stb_truetype` and `stb_rect_pack` implementation to this library and provides font baking and rendering. If you already have font handling or do not want to use this font handler you don't have to define it.
+ * NK_INCLUDE_DEFAULT_FONT         | Defining this adds the default font: ProggyClean.ttf into this library which can be loaded into a font atlas and allows using this library without having a truetype font
+ * NK_INCLUDE_COMMAND_USERDATA     | Defining this adds a userdata pointer into each command. Can be useful for example if you want to provide custom shaders depending on the used widget. Can be combined with the style structures.
+ * NK_BUTTON_TRIGGER_ON_RELEASE    | Different platforms require button clicks occurring either on buttons being pressed (up to down) or released (down to up). By default this library will react on buttons being pressed, but if you define this it will only trigger if a button is released.
+ * NK_ZERO_COMMAND_MEMORY          | Defining this will zero out memory for each drawing command added to a drawing queue (inside nk_command_buffer_push). Zeroing command memory is very useful for fast checking (using memcmp) if command buffers are equal and avoid drawing frames when nothing on screen has changed since previous frame.
+ * NK_UINT_DRAW_INDEX              | Defining this will set the size of vertex index elements when using NK_VERTEX_BUFFER_OUTPUT to 32bit instead of the default of 16bit
+ * NK_KEYSTATE_BASED_INPUT         | Define this if your backend uses key state for each frame rather than key press/release events
+ * NK_IS_WORD_BOUNDARY(c)          | Define this to a function macro that takes a single nk_rune (nk_uint) and returns true if it's a word separator. If not defined, uses the default definition (see nk_is_word_boundary())
+ *
+ * @warning The following flags will pull in the standard C library:
+ * - NK_INCLUDE_DEFAULT_ALLOCATOR
+ * - NK_INCLUDE_STANDARD_IO
+ * - NK_INCLUDE_STANDARD_VARARGS
+ *
+ * @warning The following flags if defined need to be defined for both header and implementation:
+ * - NK_INCLUDE_FIXED_TYPES
+ * - NK_INCLUDE_DEFAULT_ALLOCATOR
+ * - NK_INCLUDE_STANDARD_VARARGS
+ * - NK_INCLUDE_STANDARD_BOOL
+ * - NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+ * - NK_INCLUDE_FONT_BAKING
+ * - NK_INCLUDE_DEFAULT_FONT
+ * - NK_INCLUDE_COMMAND_USERDATA
+ * - NK_UINT_DRAW_INDEX
+ *
+ * @subsection constants Constants
+ * Define                          | Description
+ * --------------------------------|---------------------------------------
+ * NK_BUFFER_DEFAULT_INITIAL_SIZE  | Initial buffer size allocated by all buffers while using the default allocator functions included by defining NK_INCLUDE_DEFAULT_ALLOCATOR. If you don't want to allocate the default 4k memory then redefine it.
+ * NK_MAX_NUMBER_BUFFER            | Maximum buffer size for the conversion buffer between float and string. Under normal circumstances this should be more than sufficient.
+ * NK_INPUT_MAX                    | Defines the max number of bytes which can be added as text input in one frame. Under normal circumstances this should be more than sufficient.
+ *
+ * @warning The following constants if defined need to be defined for both header and implementation:
+ * - NK_MAX_NUMBER_BUFFER
+ * - NK_BUFFER_DEFAULT_INITIAL_SIZE
+ * - NK_INPUT_MAX
+ *
+ * @subsection dependencies Dependencies
+ * Function     | Description
+ * -------------|---------------------------------------------------------------
+ * NK_ASSERT    | If you don't define this, nuklear will use `<assert.h>` with assert().
+ * NK_MEMSET    | You can define this to 'memset' or your own memset implementation replacement. If not nuklear will use its own version.
+ * NK_MEMCPY    | You can define this to 'memcpy' or your own memcpy implementation replacement. If not nuklear will use its own version.
+ * NK_INV_SQRT  | You can define this to your own inverse sqrt implementation replacement. If not nuklear will use its own slow and not highly accurate version.
+ * NK_SIN       | You can define this to 'sinf' or your own sine implementation replacement. If not nuklear will use its own approximation implementation.
+ * NK_COS       | You can define this to 'cosf' or your own cosine implementation replacement. If not nuklear will use its own approximation implementation.
+ * NK_STRTOD    | You can define this to `strtod` or your own string to double conversion implementation replacement. If not defined nuklear will use its own imprecise and possibly unsafe version (does not handle nan or infinity!).
+ * NK_DTOA      | You can define this to `dtoa` or your own double to string conversion implementation replacement. If not defined nuklear will use its own imprecise and possibly unsafe version (does not handle nan or infinity!).
+ * NK_VSNPRINTF | If you define `NK_INCLUDE_STANDARD_VARARGS` as well as `NK_INCLUDE_STANDARD_IO` and want to be safe define this to `vsnprintf` on compilers supporting later versions of C or C++. By default nuklear will check for your stdlib version in C as well as compiler version in C++. if `vsnprintf` is available it will define it to `vsnprintf` directly. If not defined and if you have older versions of C or C++ it will be defined to `vsprintf` which is unsafe.
+ *
+ * @warning The following dependencies will pull in the standard C library if not redefined:
+ * - NK_ASSERT
+ *
+ * @warning The following dependencies if defined need to be defined for both header and implementation:
+ * - NK_ASSERT
+ *
+ * @warning The following dependencies if defined need to be defined only for the implementation part:
+ * - NK_MEMSET
+ * - NK_MEMCPY
+ * - NK_SQRT
+ * - NK_SIN
+ * - NK_COS
+ * - NK_STRTOD
+ * - NK_DTOA
+ * - NK_VSNPRINTF
+ *
+ * @section example Example
+ *
+ * ```c
+ * // init gui state
+ * enum {EASY, HARD};
+ * static int op = EASY;
+ * static float value = 0.6f;
+ * static int i =  20;
+ * struct nk_context ctx;
+ *
+ * nk_init_fixed(&ctx, calloc(1, MAX_MEMORY), MAX_MEMORY, &font);
+ * if (nk_begin(&ctx, "Show", nk_rect(50, 50, 220, 220),
+ *     NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_CLOSABLE)) {
+ *     // fixed widget pixel width
+ *     nk_layout_row_static(&ctx, 30, 80, 1);
+ *     if (nk_button_label(&ctx, "button")) {
+ *         // event handling
+ *     }
+ *
+ *     // fixed widget window ratio width
+ *     nk_layout_row_dynamic(&ctx, 30, 2);
+ *     if (nk_option_label(&ctx, "easy", op == EASY)) op = EASY;
+ *     if (nk_option_label(&ctx, "hard", op == HARD)) op = HARD;
+ *
+ *     // custom widget pixel width
+ *     nk_layout_row_begin(&ctx, NK_STATIC, 30, 2);
+ *     {
+ *         nk_layout_row_push(&ctx, 50);
+ *         nk_label(&ctx, "Volume:", NK_TEXT_LEFT);
+ *         nk_layout_row_push(&ctx, 110);
+ *         nk_slider_float(&ctx, 0, &value, 1.0f, 0.1f);
+ *     }
+ *     nk_layout_row_end(&ctx);
+ * }
+ * nk_end(&ctx);
+ * ```
+ */
 package nuklear
 
 import "core:c"
@@ -244,12 +211,12 @@ POINTER_TYPE             :: c.uintptr_t
 
 Hash   :: u32
 Flags  :: u32
-Color  :: [4]byte
-Colorf :: [4]f32
-Vec2   :: [2]f32
+color  :: [4]byte
+colorf :: [4]f32
+vec2   :: [2]f32
 Vec2I  :: [2]i16
 
-Rect :: struct {
+rect :: struct {
 	x, y, w, h: f32,
 }
 
@@ -257,110 +224,117 @@ RectI :: struct {
 	x, y, w, h: i16,
 }
 
-Glyph :: [4]i8
+glyph :: [4]i8
 
-Handle :: struct #raw_union {
+handle :: struct #raw_union {
 	ptr: rawptr,
 	id:  i32,
 }
 
-Image :: struct {
-	handle: Handle,
+image :: struct {
+	handle: handle,
 	w, h:   u16,
 	region: [4]u16,
 }
 
-Nine_Slice :: struct {
-	img:        Image,
+nine_slice :: struct {
+	img:        image,
 	l, t, r, b: u16,
 }
 
-Cursor :: struct {
-	img:          Image,
-	size, offset: Vec2,
+cursor :: struct {
+	img:          image,
+	size, offset: vec2,
 }
 
-Scroll :: struct {
+scroll :: struct {
 	x, y: u32,
 }
 
-Heading :: enum i32 {
+heading :: enum u32 {
 	UP    = 0,
 	RIGHT = 1,
 	DOWN  = 2,
 	LEFT  = 3,
 }
 
-Button_Behavior :: enum i32 {
+button_behavior :: enum u32 {
 	DEFAULT  = 0,
 	REPEATER = 1,
 }
 
-Modify :: enum i32 {
+modify :: enum u32 {
 	FIXED      = 0,
 	MODIFIABLE = 1,
 }
 
-Orientation :: enum i32 {
+orientation :: enum u32 {
 	VERTICAL   = 0,
 	HORIZONTAL = 1,
 }
 
-Collapse_States :: enum i32 {
+collapse_states :: enum i32 {
     MINIMIZED = 0,
     MAXIMIZED = 1,
 }
 
-Show_States :: enum i32 {
+show_states :: enum u32 {
 	HIDDEN = 0,
 	SHOWN  = 1,
 }
 
-Chart_Type :: enum i32 {
+chart_type :: enum u32 {
 	LINES  = 0,
 	COLUMN = 1,
 }
 
-Chart_Event :: enum i32 {
+chart_event :: enum u32 {
 	HOVERING = 0,
 	CLICKED  = 1,
 }
 
-Color_Format :: enum i32 {
+color_format :: enum u32 {
 	RGB  = 0,
 	RGBA = 1,
 }
 
-Chart_Event_Flags :: bit_set[Chart_Event; i32]
+chart_event_Flags :: bit_set[chart_event; u32]
 
-Popup_Type :: enum i32 {
+popup_type :: enum u32 {
 	STATIC  = 0,
 	DYNAMIC = 1,
 }
 
-Layout_Format :: enum i32 {
+layout_format :: enum u32 {
 	DYNAMIC = 0,
 	STATIC  = 1,
 }
 
-Tree_Type :: enum i32 {
+tree_type :: enum u32 {
 	NODE = 0,
 	TAB  = 1,
 }
 
-Plugin_Alloc  :: proc "c" (_: Handle, old: rawptr, _: uint) -> rawptr
-Plugin_Free   :: proc "c" (_: Handle, old: rawptr)
-Plugin_Filter :: proc "c" (_: ^Text_Edit, unicode: rune) -> bool
-Plugin_Paste  :: proc "c" (Handle, ^Text_Edit)
-Plugin_Copy   :: proc "c" (_: Handle, _: cstring, len: i32)
-
-Allocator :: struct {
-	userdata: Handle,
-	alloc:    Plugin_Alloc,
-	free:     Plugin_Free,
+tooltip_pos :: enum u32 {
+	TOP_LEFT      = 0,
+	TOP_CENTER    = 1,
+	TOP_RIGHT     = 2,
+	MIDDLE_LEFT   = 3,
+	MIDDLE_CENTER = 4,
+	MIDDLE_RIGHT  = 5,
+	BOTTOM_LEFT   = 6,
+	BOTTOM_CENTER = 7,
+	BOTTOM_RIGHT  = 8,
 }
 
-Symbol_Type :: enum i32 {
+plugin_alloc  :: proc "c" (_: handle, old: rawptr, _: uint) -> rawptr
+plugin_free   :: proc "c" (_: handle, old: rawptr)
+plugin_filter :: proc "c" (_: ^text_edit, unicode: rune) -> bool
+plugin_paste  :: proc "c" (handle, ^text_edit)
+plugin_copy   :: proc "c" (_: handle, _: cstring, len: i32)
+allocator     :: struct {}
+
+symbol_type :: enum u32 {
 	NONE                   = 0,
 	X                      = 1,
 	UNDERSCORE             = 2,
@@ -378,6 +352,11 @@ Symbol_Type :: enum i32 {
 	TRIANGLE_DOWN_OUTLINE  = 14,
 	TRIANGLE_LEFT_OUTLINE  = 15,
 	TRIANGLE_RIGHT_OUTLINE = 16,
+	CHEVRON_UP             = 17,
+	CHEVRON_RIGHT          = 18,
+	CHEVRON_DOWN           = 19,
+	CHEVRON_LEFT           = 20,
+	HAMBURGER              = 21, /** Three horizontal lines. */
 }
 
 @(default_calling_convention="c", link_prefix="nk_")
@@ -394,8 +373,7 @@ foreign lib {
 	* nk_bool nk_init_fixed(struct nk_context *ctx, void *memory, nk_size size, const struct nk_user_font *font);
 	* ```
 	*
-	* !!! Warning
-	*     make sure the passed memory block is aligned correctly for `nk_draw_commands`.
+	* \warning Make sure the passed memory block is aligned correctly for `nk_draw_commands`.
 	*
 	* Parameter   | Description
 	* ------------|--------------------------------------------------------------
@@ -406,7 +384,7 @@ foreign lib {
 	*
 	* \returns either `false(0)` on failure or `true(1)` on success.
 	*/
-	init_fixed :: proc(_: ^Context, memory: rawptr, size: uint, _: ^User_Font) -> bool ---
+	init_fixed :: proc(_: ^context, memory: rawptr, size: uint, _: ^user_font) -> bool ---
 
 	/**
 	* # nk_init
@@ -426,7 +404,7 @@ foreign lib {
 	*
 	* \returns either `false(0)` on failure or `true(1)` on success.
 	*/
-	init :: proc(^Context, ^Allocator, ^User_Font) -> bool ---
+	init :: proc(^context, ^allocator, ^user_font) -> bool ---
 
 	/**
 	* \brief Initializes a `nk_context` struct from two different either fixed or growing buffers.
@@ -446,7 +424,7 @@ foreign lib {
 	*
 	* \returns either `false(0)` on failure or `true(1)` on success.
 	*/
-	init_custom :: proc(_: ^Context, cmds: ^Buffer, pool: ^Buffer, _: ^User_Font) -> bool ---
+	init_custom :: proc(_: ^context, cmds: ^buffer, pool: ^buffer, _: ^user_font) -> bool ---
 
 	/**
 	* \brief Resets the context state at the end of the frame.
@@ -461,7 +439,7 @@ foreign lib {
 	*
 	* \param[in] ctx  Must point to a previously initialized `nk_context` struct
 	*/
-	clear :: proc(^Context) ---
+	clear :: proc(^context) ---
 
 	/**
 	* \brief Frees all memory allocated by nuklear; Not needed if context was initialized with `nk_init_fixed`.
@@ -473,7 +451,7 @@ foreign lib {
 	*
 	* \param[in] ctx  Must point to a previously initialized `nk_context` struct
 	*/
-	free :: proc(^Context) ---
+	free :: proc(^context) ---
 
 	/**
 	* \brief Sets the currently passed userdata passed down into each draw command.
@@ -486,7 +464,7 @@ foreign lib {
 	* \param[in] ctx Must point to a previously initialized `nk_context` struct
 	* \param[in] data  Handle with either pointer or index to be passed into every draw commands
 	*/
-	set_user_data :: proc(_: ^Context, handle: Handle) ---
+	set_user_data :: proc(_: ^context, handle: handle) ---
 }
 
 /* =============================================================================
@@ -557,7 +535,7 @@ foreign lib {
 * \ref nk_input_unicode| Adds a single unicode rune into an internal text buffer
 * \ref nk_input_end    | Ends the input mirroring process by calculating state changes. Don't call any `nk_input_xxx` function referenced above after this call
 */
-Keys :: enum i32 {
+keys :: enum u32 {
 	NONE              = 0,
 	SHIFT             = 1,
 	CTRL              = 2,
@@ -592,13 +570,28 @@ Keys :: enum i32 {
 	SCROLL_END        = 27,
 	SCROLL_DOWN       = 28,
 	SCROLL_UP         = 29,
+	ALT               = 30,
+	F1                = 31,
+	F2                = 32,
+	F3                = 33,
+	F4                = 34,
+	F5                = 35,
+	F6                = 36,
+	F7                = 37,
+	F8                = 38,
+	F9                = 39,
+	F10               = 40,
+	F11               = 41,
+	F12               = 42,
 }
 
-Buttons :: enum i32 {
+buttons :: enum u32 {
 	LEFT   = 0,
 	MIDDLE = 1,
 	RIGHT  = 2,
-	DOUBLE = 3,
+	DOUBLE = 3, /* Double click of the Left mouse button. */
+	X1     = 4, /* Commonly used for "Back" in UI navigation. Mouse Button 4. */
+	X2     = 5, /* Commonly used for "Forward" in UI navigation. Mouse Button 5. */
 }
 
 @(default_calling_convention="c", link_prefix="nk_")
@@ -614,7 +607,7 @@ foreign lib {
 	*
 	* \param[in] ctx Must point to a previously initialized `nk_context` struct
 	*/
-	input_begin :: proc(^Context) ---
+	input_begin :: proc(^context) ---
 
 	/**
 	* \brief Mirrors current mouse position to nuklear
@@ -628,7 +621,7 @@ foreign lib {
 	* \param[in] x     Must hold an integer describing the current mouse cursor x-position
 	* \param[in] y     Must hold an integer describing the current mouse cursor y-position
 	*/
-	input_motion :: proc(_: ^Context, x: i32, y: i32) ---
+	input_motion :: proc(_: ^context, x: i32, y: i32) ---
 
 	/**
 	* \brief Mirrors the state of a specific key to nuklear
@@ -642,7 +635,7 @@ foreign lib {
 	* \param[in] key      Must be any value specified in enum `nk_keys` that needs to be mirrored
 	* \param[in] down     Must be 0 for key is up and 1 for key is down
 	*/
-	input_key :: proc(_: ^Context, _: Keys, down: bool) ---
+	input_key :: proc(_: ^context, _: keys, down: bool) ---
 
 	/**
 	* \brief Mirrors the state of a specific mouse button to nuklear
@@ -658,7 +651,7 @@ foreign lib {
 	* \param[in] y       Must contain an integer describing mouse cursor y-position on click up/down
 	* \param[in] down    Must be 0 for key is up and 1 for key is down
 	*/
-	input_button :: proc(_: ^Context, _: Buttons, x: i32, y: i32, down: bool) ---
+	input_button :: proc(_: ^context, _: buttons, x: i32, y: i32, down: bool) ---
 
 	/**
 	* \brief Copies the last mouse scroll value to nuklear.
@@ -674,7 +667,7 @@ foreign lib {
 	* \param[in] ctx     | Must point to a previously initialized `nk_context` struct
 	* \param[in] val     | vector with both X- as well as Y-scroll value
 	*/
-	input_scroll :: proc(_: ^Context, val: Vec2) ---
+	input_scroll :: proc(_: ^context, val: vec2) ---
 
 	/**
 	* \brief Copies a single ASCII character into an internal text buffer
@@ -683,8 +676,7 @@ foreign lib {
 	* This is basically a helper function to quickly push ASCII characters into
 	* nuklear.
 	*
-	* \note
-	*     Stores up to NK_INPUT_MAX bytes between `nk_input_begin` and `nk_input_end`.
+	* \note Stores up to NK_INPUT_MAX bytes between `nk_input_begin` and `nk_input_end`.
 	*
 	* ```c
 	* void nk_input_char(struct nk_context *ctx, char c);
@@ -693,14 +685,13 @@ foreign lib {
 	* \param[in] ctx     | Must point to a previously initialized `nk_context` struct
 	* \param[in] c       | Must be a single ASCII character preferable one that can be printed
 	*/
-	input_char :: proc(^Context, i8) ---
+	input_char :: proc(^context, i8) ---
 
 	/**
 	* \brief Converts an encoded unicode rune into UTF-8 and copies the result into an
 	* internal text buffer.
 	*
-	* \note
-	*     Stores up to NK_INPUT_MAX bytes between `nk_input_begin` and `nk_input_end`.
+	* \note Stores up to NK_INPUT_MAX bytes between `nk_input_begin` and `nk_input_end`.
 	*
 	* ```c
 	* void nk_input_glyph(struct nk_context *ctx, const nk_glyph g);
@@ -709,15 +700,14 @@ foreign lib {
 	* \param[in] ctx     | Must point to a previously initialized `nk_context` struct
 	* \param[in] g       | UTF-32 unicode codepoint
 	*/
-	input_glyph :: proc(^Context, ^Glyph) ---
+	input_glyph :: proc(^context, ^glyph) ---
 
 	/**
 	* \brief Converts a unicode rune into UTF-8 and copies the result
 	* into an internal text buffer.
 	*
 	* \details
-	* \note
-	*     Stores up to NK_INPUT_MAX bytes between `nk_input_begin` and `nk_input_end`.
+	* \note Stores up to NK_INPUT_MAX bytes between `nk_input_begin` and `nk_input_end`.
 	*
 	* ```c
 	* void nk_input_unicode(struct nk_context*, nk_rune rune);
@@ -726,7 +716,7 @@ foreign lib {
 	* \param[in] ctx     | Must point to a previously initialized `nk_context` struct
 	* \param[in] rune    | UTF-32 unicode codepoint
 	*/
-	input_unicode :: proc(^Context, rune) ---
+	input_unicode :: proc(^context, rune) ---
 
 	/**
 	* \brief End the input mirroring process by resetting mouse grabbing
@@ -739,10 +729,10 @@ foreign lib {
 	*
 	* \param[in] ctx     | Must point to a previously initialized `nk_context` struct
 	*/
-	input_end :: proc(^Context) ---
+	input_end :: proc(^context) ---
 }
 
-Convert_Result :: enum i32 {
+convert_result :: enum u32 {
 	SUCCESS             = 0,
 	INVALID_PARAM       = 1,
 	COMMAND_BUFFER_FULL = 2,
@@ -750,9 +740,9 @@ Convert_Result :: enum i32 {
 	ELEMENT_BUFFER_FULL = 8,
 }
 
-Draw_Null_Texture :: struct {
-	texture: Handle, /**!< texture handle to a texture with a white pixel */
-	uv:      Vec2,   /**!< coordinates to a white pixel in the texture  */
+draw_null_texture :: struct {
+	texture: handle, /**!< texture handle to a texture with a white pixel */
+	uv:      vec2,   /**!< coordinates to a white pixel in the texture  */
 }
 
 @(default_calling_convention="c", link_prefix="nk_")
@@ -770,7 +760,7 @@ foreign lib {
 	*
 	* \returns draw command pointer pointing to the first command inside the draw command list
 	*/
-	_begin :: proc(^Context) -> ^Command ---
+	_begin :: proc(^context) -> ^command ---
 
 	/**
 	* \brief Returns draw command pointer pointing to the next command inside the draw command list
@@ -785,10 +775,10 @@ foreign lib {
 	*
 	* \returns draw command pointer pointing to the next command inside the draw command list
 	*/
-	_next :: proc(^Context, ^Command) -> ^Command ---
+	_next :: proc(^context, ^command) -> ^command ---
 }
 
-Panel_Flag :: enum i32 {
+panel_flag :: enum u32 {
 	BORDER           = 0,
 	MOVABLE          = 1,
 	SCALABLE         = 2,
@@ -821,7 +811,7 @@ Panel_Flag :: enum i32 {
 * order. The topmost window thereby is the currently active window.<br /><br />
 *
 * To change window position inside the stack occurs either automatically by
-* user input by being clicked on or programmatically by calling `nk_window_focus`.
+* user input by being clicked on or programmatically by calling `nk_window_set_focus`.
 * Windows by default are visible unless explicitly being defined with flag
 * `NK_WINDOW_HIDDEN`, the user clicked the close button on windows with flag
 * `NK_WINDOW_CLOSABLE` or if a window was explicitly hidden by calling
@@ -954,7 +944,7 @@ Panel_Flag :: enum i32 {
 * NK_MINIMIZED| UI section is collapsed and not visible until maximized
 * NK_MAXIMIZED| UI section is extended and visible until minimized
 */
-Panel_Flags :: bit_set[Panel_Flag; i32]
+panel_flags :: bit_set[panel_flag; u32]
 
 @(default_calling_convention="c", link_prefix="nk_")
 foreign lib {
@@ -978,7 +968,7 @@ foreign lib {
 	* until `nk_end` or `false(0)` otherwise for example if minimized
 	
 	*/
-	begin :: proc(ctx: ^Context, title: cstring, bounds: Rect, flags: Panel_Flags) -> bool ---
+	begin :: proc(ctx: ^context, title: cstring, bounds: rect, flags: panel_flags) -> bool ---
 
 	/**
 	* # # nk_begin_titled
@@ -1001,7 +991,7 @@ foreign lib {
 	* until `nk_end` or `false(0)` otherwise for example if minimized
 	
 	*/
-	begin_titled :: proc(ctx: ^Context, name: cstring, title: cstring, bounds: Rect, flags: Panel_Flags) -> bool ---
+	begin_titled :: proc(ctx: ^context, name: cstring, title: cstring, bounds: rect, flags: panel_flags) -> bool ---
 
 	/**
 	* # # nk_end
@@ -1017,7 +1007,7 @@ foreign lib {
 	* \param[in] ctx     | Must point to an previously initialized `nk_context` struct
 	
 	*/
-	end :: proc(ctx: ^Context) ---
+	end :: proc(ctx: ^context) ---
 
 	/**
 	* # # nk_window_find
@@ -1035,14 +1025,14 @@ foreign lib {
 	* \returns a `nk_window` struct pointing to the identified window or NULL if
 	* no window with the given name was found
 	*/
-	window_find :: proc(ctx: ^Context, name: cstring) -> ^Window ---
+	window_find :: proc(ctx: ^context, name: cstring) -> ^window ---
 
 	/**
 	* # # nk_window_get_bounds
 	* \returns a rectangle with screen position and size of the currently processed window
 	*
-	* !!! \warning
-	*     Only call this function between calls `nk_begin_xxx` and `nk_end`
+	* \warning Only call this function between calls `nk_begin_xxx` and `nk_end`.
+	*
 	* ```c
 	* struct nk_rect nk_window_get_bounds(const struct nk_context *ctx);
 	* ```
@@ -1054,14 +1044,14 @@ foreign lib {
 	* \returns a `nk_rect` struct with window upper left window position and size
 	
 	*/
-	window_get_bounds :: proc(ctx: ^Context) -> Rect ---
+	window_get_bounds :: proc(ctx: ^context) -> rect ---
 
 	/**
 	* # # nk_window_get_position
 	* \returns the position of the currently processed window.
 	*
-	* !!! \warning
-	*     Only call this function between calls `nk_begin_xxx` and `nk_end`
+	* \warning Only call this function between calls `nk_begin_xxx` and `nk_end`.
+	*
 	* ```c
 	* struct nk_vec2 nk_window_get_position(const struct nk_context *ctx);
 	* ```
@@ -1073,14 +1063,14 @@ foreign lib {
 	* \returns a `nk_vec2` struct with window upper left position
 	
 	*/
-	window_get_position :: proc(ctx: ^Context) -> Vec2 ---
+	window_get_position :: proc(ctx: ^context) -> vec2 ---
 
 	/**
 	* # # nk_window_get_size
 	* \returns the size with width and height of the currently processed window.
 	*
-	* !!! \warning
-	*     Only call this function between calls `nk_begin_xxx` and `nk_end`
+	* \warning Only call this function between calls `nk_begin_xxx` and `nk_end`.
+	*
 	* ```c
 	* struct nk_vec2 nk_window_get_size(const struct nk_context *ctx);
 	* ```
@@ -1092,14 +1082,14 @@ foreign lib {
 	* \returns a `nk_vec2` struct with window width and height
 	
 	*/
-	window_get_size :: proc(ctx: ^Context) -> Vec2 ---
+	window_get_size :: proc(ctx: ^context) -> vec2 ---
 
 	/**
 	* nk_window_get_width
 	* \returns the width of the currently processed window.
 	*
-	* !!! \warning
-	*     Only call this function between calls `nk_begin_xxx` and `nk_end`
+	* \warning Only call this function between calls `nk_begin_xxx` and `nk_end`.
+	*
 	* ```c
 	* float nk_window_get_width(const struct nk_context *ctx);
 	* ```
@@ -1110,14 +1100,14 @@ foreign lib {
 	*
 	* \returns the current window width
 	*/
-	window_get_width :: proc(ctx: ^Context) -> f32 ---
+	window_get_width :: proc(ctx: ^context) -> f32 ---
 
 	/**
 	* # # nk_window_get_height
 	* \returns the height of the currently processed window.
 	*
-	* !!! \warning
-	*     Only call this function between calls `nk_begin_xxx` and `nk_end`
+	* \warning Only call this function between calls `nk_begin_xxx` and `nk_end`.
+	*
 	* ```c
 	* float nk_window_get_height(const struct nk_context *ctx);
 	* ```
@@ -1129,16 +1119,16 @@ foreign lib {
 	* \returns the current window height
 	
 	*/
-	window_get_height :: proc(ctx: ^Context) -> f32 ---
+	window_get_height :: proc(ctx: ^context) -> f32 ---
 
 	/**
 	* # # nk_window_get_panel
 	* \returns the underlying panel which contains all processing state of the current window.
 	*
-	* !!! \warning
-	*     Only call this function between calls `nk_begin_xxx` and `nk_end`
-	* !!! \warning
-	*     Do not keep the returned panel pointer around, it is only valid until `nk_end`
+	* \warning Only call this function between calls `nk_begin_xxx` and `nk_end`
+	*
+	* \warning Do not keep the returned panel pointer around, it is only valid until `nk_end`.
+	*
 	* ```c
 	* struct nk_panel* nk_window_get_panel(struct nk_context *ctx);
 	* ```
@@ -1150,15 +1140,14 @@ foreign lib {
 	* \returns a pointer to window internal `nk_panel` state.
 	
 	*/
-	window_get_panel :: proc(ctx: ^Context) -> ^Panel ---
+	window_get_panel :: proc(ctx: ^context) -> ^panel ---
 
 	/**
 	* # # nk_window_get_content_region
 	* \returns the position and size of the currently visible and non-clipped space
 	* inside the currently processed window.
 	*
-	* !!! \warning
-	*     Only call this function between calls `nk_begin_xxx` and `nk_end`
+	* \warning Only call this function between calls `nk_begin_xxx` and `nk_end`
 	*
 	* ```c
 	* struct nk_rect nk_window_get_content_region(struct nk_context *ctx);
@@ -1172,15 +1161,14 @@ foreign lib {
 	* of the visible space inside the current window
 	
 	*/
-	window_get_content_region :: proc(ctx: ^Context) -> Rect ---
+	window_get_content_region :: proc(ctx: ^context) -> rect ---
 
 	/**
 	* # # nk_window_get_content_region_min
 	* \returns the upper left position of the currently visible and non-clipped
 	* space inside the currently processed window.
 	*
-	* !!! \warning
-	*     Only call this function between calls `nk_begin_xxx` and `nk_end`
+	* \warning Only call this function between calls `nk_begin_xxx` and `nk_end`
 	*
 	* ```c
 	* struct nk_vec2 nk_window_get_content_region_min(struct nk_context *ctx);
@@ -1194,15 +1182,14 @@ foreign lib {
 	* of the visible space inside the current window
 	
 	*/
-	window_get_content_region_min :: proc(ctx: ^Context) -> Vec2 ---
+	window_get_content_region_min :: proc(ctx: ^context) -> vec2 ---
 
 	/**
 	* # # nk_window_get_content_region_max
 	* \returns the lower right screen position of the currently visible and
 	* non-clipped space inside the currently processed window.
 	*
-	* !!! \warning
-	*     Only call this function between calls `nk_begin_xxx` and `nk_end`
+	* \warning Only call this function between calls `nk_begin_xxx` and `nk_end`
 	*
 	* ```c
 	* struct nk_vec2 nk_window_get_content_region_max(struct nk_context *ctx);
@@ -1216,15 +1203,14 @@ foreign lib {
 	* of the visible space inside the current window
 	
 	*/
-	window_get_content_region_max :: proc(ctx: ^Context) -> Vec2 ---
+	window_get_content_region_max :: proc(ctx: ^context) -> vec2 ---
 
 	/**
 	* # # nk_window_get_content_region_size
 	* \returns the size of the currently visible and non-clipped space inside the
 	* currently processed window
 	*
-	* !!! \warning
-	*     Only call this function between calls `nk_begin_xxx` and `nk_end`
+	* \warning Only call this function between calls `nk_begin_xxx` and `nk_end`
 	*
 	* ```c
 	* struct nk_vec2 nk_window_get_content_region_size(struct nk_context *ctx);
@@ -1237,15 +1223,13 @@ foreign lib {
 	* \returns `nk_vec2` struct with size the visible space inside the current window
 	
 	*/
-	window_get_content_region_size :: proc(ctx: ^Context) -> Vec2 ---
+	window_get_content_region_size :: proc(ctx: ^context) -> vec2 ---
 
 	/**
 	* # # nk_window_get_canvas
 	* \returns the draw command buffer. Can be used to draw custom widgets
-	* !!! \warning
-	*     Only call this function between calls `nk_begin_xxx` and `nk_end`
-	* !!! \warning
-	*     Do not keep the returned command buffer pointer around it is only valid until `nk_end`
+	* \warning Only call this function between calls `nk_begin_xxx` and `nk_end`
+	* \warning Do not keep the returned command buffer pointer around it is only valid until `nk_end`
 	*
 	* ```c
 	* struct nk_command_buffer* nk_window_get_canvas(struct nk_context *ctx);
@@ -1258,13 +1242,12 @@ foreign lib {
 	* \returns a pointer to window internal `nk_command_buffer` struct used as
 	* drawing canvas. Can be used to do custom drawing.
 	*/
-	window_get_canvas :: proc(ctx: ^Context) -> ^Command_Buffer ---
+	window_get_canvas :: proc(ctx: ^context) -> ^command_buffer ---
 
 	/**
 	* # # nk_window_get_scroll
 	* Gets the scroll offset for the current window
-	* !!! \warning
-	*     Only call this function between calls `nk_begin_xxx` and `nk_end`
+	* \warning Only call this function between calls `nk_begin_xxx` and `nk_end`
 	*
 	* ```c
 	* void nk_window_get_scroll(struct nk_context *ctx, nk_uint *offset_x, nk_uint *offset_y);
@@ -1277,13 +1260,13 @@ foreign lib {
 	* \param[in] offset_y | A pointer to the y offset output (or NULL to ignore)
 	
 	*/
-	window_get_scroll :: proc(ctx: ^Context, offset_x: ^u32, offset_y: ^u32) ---
+	window_get_scroll :: proc(ctx: ^context, offset_x: ^u32, offset_y: ^u32) ---
 
 	/**
 	* # # nk_window_has_focus
 	* \returns if the currently processed window is currently active
-	* !!! \warning
-	*     Only call this function between calls `nk_begin_xxx` and `nk_end`
+	* \warning Only call this function between calls `nk_begin_xxx` and `nk_end`.
+	*
 	* ```c
 	* nk_bool nk_window_has_focus(const struct nk_context *ctx);
 	* ```
@@ -1295,13 +1278,13 @@ foreign lib {
 	* \returns `false(0)` if current window is not active or `true(1)` if it is
 	
 	*/
-	window_has_focus :: proc(ctx: ^Context) -> bool ---
+	window_has_focus :: proc(ctx: ^context) -> bool ---
 
 	/**
 	* # # nk_window_is_hovered
 	* Return if the current window is being hovered
-	* !!! \warning
-	*     Only call this function between calls `nk_begin_xxx` and `nk_end`
+	* \warning Only call this function between calls `nk_begin_xxx` and `nk_end`.
+	*
 	* ```c
 	* nk_bool nk_window_is_hovered(struct nk_context *ctx);
 	* ```
@@ -1313,7 +1296,7 @@ foreign lib {
 	* \returns `true(1)` if current window is hovered or `false(0)` otherwise
 	
 	*/
-	window_is_hovered :: proc(ctx: ^Context) -> bool ---
+	window_is_hovered :: proc(ctx: ^context) -> bool ---
 
 	/**
 	* # # nk_window_is_collapsed
@@ -1331,7 +1314,7 @@ foreign lib {
 	* found or is not minimized
 	
 	*/
-	window_is_collapsed :: proc(ctx: ^Context, name: cstring) -> bool ---
+	window_is_collapsed :: proc(ctx: ^context, name: cstring) -> bool ---
 
 	/**
 	* # # nk_window_is_closed
@@ -1348,7 +1331,7 @@ foreign lib {
 	* \returns `true(1)` if current window was closed or `false(0)` window not found or not closed
 	
 	*/
-	window_is_closed :: proc(ctx: ^Context, name: cstring) -> bool ---
+	window_is_closed :: proc(ctx: ^context, name: cstring) -> bool ---
 
 	/**
 	* # # nk_window_is_hidden
@@ -1365,7 +1348,7 @@ foreign lib {
 	* \returns `true(1)` if current window is hidden or `false(0)` window not found or visible
 	
 	*/
-	window_is_hidden :: proc(ctx: ^Context, name: cstring) -> bool ---
+	window_is_hidden :: proc(ctx: ^context, name: cstring) -> bool ---
 
 	/**
 	* # # nk_window_is_active
@@ -1381,7 +1364,7 @@ foreign lib {
 	*
 	* \returns `true(1)` if current window is active or `false(0)` window not found or not active
 	*/
-	window_is_active :: proc(ctx: ^Context, name: cstring) -> bool ---
+	window_is_active :: proc(ctx: ^context, name: cstring) -> bool ---
 
 	/**
 	* # # nk_window_is_any_hovered
@@ -1396,7 +1379,7 @@ foreign lib {
 	*
 	* \returns `true(1)` if any window is hovered or `false(0)` otherwise
 	*/
-	window_is_any_hovered :: proc(ctx: ^Context) -> bool ---
+	window_is_any_hovered :: proc(ctx: ^context) -> bool ---
 
 	/**
 	* # # nk_item_is_any_active
@@ -1414,7 +1397,7 @@ foreign lib {
 	* \returns `true(1)` if any window is hovered or any item is active or `false(0)` otherwise
 	
 	*/
-	item_is_any_active :: proc(ctx: ^Context) -> bool ---
+	item_is_any_active :: proc(ctx: ^context) -> bool ---
 
 	/**
 	* # # nk_window_set_bounds
@@ -1430,7 +1413,7 @@ foreign lib {
 	* \param[in] bounds  | Must point to a `nk_rect` struct with the new position and size
 	
 	*/
-	window_set_bounds :: proc(ctx: ^Context, name: cstring, bounds: Rect) ---
+	window_set_bounds :: proc(ctx: ^context, name: cstring, bounds: rect) ---
 
 	/**
 	* # # nk_window_set_position
@@ -1446,7 +1429,7 @@ foreign lib {
 	* \param[in] pos     | Must point to a `nk_vec2` struct with the new position
 	
 	*/
-	window_set_position :: proc(ctx: ^Context, name: cstring, pos: Vec2) ---
+	window_set_position :: proc(ctx: ^context, name: cstring, pos: vec2) ---
 
 	/**
 	* # # nk_window_set_size
@@ -1462,7 +1445,7 @@ foreign lib {
 	* \param[in] size    | Must point to a `nk_vec2` struct with new window size
 	
 	*/
-	window_set_size :: proc(ctx: ^Context, name: cstring, size: Vec2) ---
+	window_set_size :: proc(ctx: ^context, name: cstring, size: vec2) ---
 
 	/**
 	* # # nk_window_set_focus
@@ -1477,13 +1460,12 @@ foreign lib {
 	* \param[in] name    | Identifier of the window to set focus on
 	
 	*/
-	window_set_focus :: proc(ctx: ^Context, name: cstring) ---
+	window_set_focus :: proc(ctx: ^context, name: cstring) ---
 
 	/**
 	* # # nk_window_set_scroll
 	* Sets the scroll offset for the current window
-	* !!! \warning
-	*     Only call this function between calls `nk_begin_xxx` and `nk_end`
+	* \warning Only call this function between calls `nk_begin_xxx` and `nk_end`
 	*
 	* ```c
 	* void nk_window_set_scroll(struct nk_context *ctx, nk_uint offset_x, nk_uint offset_y);
@@ -1496,7 +1478,7 @@ foreign lib {
 	* \param[in] offset_y | The y offset to scroll to
 	
 	*/
-	window_set_scroll :: proc(ctx: ^Context, offset_x: u32, offset_y: u32) ---
+	window_set_scroll :: proc(ctx: ^context, offset_x: u32, offset_y: u32) ---
 
 	/**
 	* # # nk_window_close
@@ -1511,7 +1493,7 @@ foreign lib {
 	* \param[in] name    | Identifier of the window to close
 	
 	*/
-	window_close :: proc(ctx: ^Context, name: cstring) ---
+	window_close :: proc(ctx: ^context, name: cstring) ---
 
 	/**
 	* # # nk_window_collapse
@@ -1527,7 +1509,7 @@ foreign lib {
 	* \param[in] state   | value out of nk_collapse_states section
 	
 	*/
-	window_collapse :: proc(ctx: ^Context, name: cstring, state: Collapse_States) ---
+	window_collapse :: proc(ctx: ^context, name: cstring, state: collapse_states) ---
 
 	/**
 	* # # nk_window_collapse_if
@@ -1544,7 +1526,7 @@ foreign lib {
 	* \param[in] cond    | condition that has to be met to actually commit the collapse state change
 	
 	*/
-	window_collapse_if :: proc(ctx: ^Context, name: cstring, state: Collapse_States, cond: i32) ---
+	window_collapse_if :: proc(ctx: ^context, name: cstring, state: collapse_states, cond: i32) ---
 
 	/**
 	* # # nk_window_show
@@ -1559,7 +1541,7 @@ foreign lib {
 	* \param[in] name    | Identifier of the window to either collapse or maximize
 	* \param[in] state   | state with either visible or hidden to modify the window with
 	*/
-	window_show :: proc(ctx: ^Context, name: cstring, state: Show_States) ---
+	window_show :: proc(ctx: ^context, name: cstring, state: show_states) ---
 
 	/**
 	* # # nk_window_show_if
@@ -1576,7 +1558,7 @@ foreign lib {
 	* \param[in] cond    | condition that has to be met to actually commit the visibility state change
 	
 	*/
-	window_show_if :: proc(ctx: ^Context, name: cstring, state: Show_States, cond: i32) ---
+	window_show_if :: proc(ctx: ^context, name: cstring, state: show_states, cond: i32) ---
 
 	/**
 	* # # nk_window_show_if
@@ -1591,10 +1573,10 @@ foreign lib {
 	* \param[in] color       | Color of the horizontal line
 	* \param[in] rounding    | Whether or not to make the line round
 	*/
-	rule_horizontal :: proc(ctx: ^Context, color: Color, rounding: bool) ---
+	rule_horizontal :: proc(ctx: ^context, color: color, rounding: bool) ---
 }
 
-Widget_Align :: enum i32 {
+widget_align :: enum u32 {
 	LEFT     = 0,
 	CENTERED = 1,
 	RIGHT    = 2,
@@ -1623,8 +1605,7 @@ Widget_Align :: enum i32 {
 * To actually define a layout you just call the appropriate layouting function
 * and each subsequent widget call will place the widget as specified. Important
 * here is that if you define more widgets then columns defined inside the layout
-* functions it will allocate the next row without you having to make another layouting <br /><br />
-* call.
+* functions it will allocate the next row without you having to make another layouting call. <br /><br />
 *
 * Biggest limitation with using all these APIs outside the `nk_layout_space_xxx` API
 * is that you have to define the row height for each. However the row height
@@ -1639,7 +1620,7 @@ Widget_Align :: enum i32 {
 * reset it back to be derived from font height. <br /><br />
 *
 * Also if you change the font in nuklear it will automatically change the minimum
-* row height for you and. This means if you change the font but still want
+* row height for you. This means if you change the font but still want
 * a minimum row height smaller than the font you have to repush your value. <br /><br />
 *
 * For actually more advanced UI I would even recommend using the `nk_layout_space_xxx`
@@ -1649,202 +1630,202 @@ Widget_Align :: enum i32 {
 * functions should be fine.
 *
 * # Usage
-* 1.  __nk_layout_row_dynamic__<br /><br />
-*     The easiest layouting function is `nk_layout_row_dynamic`. It provides each
-*     widgets with same horizontal space inside the row and dynamically grows
-*     if the owning window grows in width. So the number of columns dictates
-*     the size of each widget dynamically by formula:
+* 1. __nk_layout_row_dynamic__<br /><br />
+*    The easiest layouting function is `nk_layout_row_dynamic`. It provides each
+*    widgets with same horizontal space inside the row and dynamically grows
+*    if the owning window grows in width. So the number of columns dictates
+*    the size of each widget dynamically by formula:
 *
-*     ```c
-*     widget_width = (window_width - padding - spacing) * (1/column_count)
-*     ```
+*    ```c
+*    widget_width = (window_width - padding - spacing) * (1/column_count)
+*    ```
 *
-*     Just like all other layouting APIs if you define more widget than columns this
-*     library will allocate a new row and keep all layouting parameters previously
-*     defined.
+*    Just like all other layouting APIs if you define more widget than columns this
+*    library will allocate a new row and keep all layouting parameters previously
+*    defined.
 *
-*     ```c
-*     if (nk_begin_xxx(...) {
-*         // first row with height: 30 composed of two widgets
-*         nk_layout_row_dynamic(&ctx, 30, 2);
-*         nk_widget(...);
-*         nk_widget(...);
-*         //
-*         // second row with same parameter as defined above
-*         nk_widget(...);
-*         nk_widget(...);
-*         //
-*         // third row uses 0 for height which will use auto layouting
-*         nk_layout_row_dynamic(&ctx, 0, 2);
-*         nk_widget(...);
-*         nk_widget(...);
-*     }
-*     nk_end(...);
-*     ```
+*    ```c
+*    if (nk_begin_xxx(...) {
+*        // first row with height: 30 composed of two widgets
+*        nk_layout_row_dynamic(&ctx, 30, 2);
+*        nk_widget(...);
+*        nk_widget(...);
+*        //
+*        // second row with same parameter as defined above
+*        nk_widget(...);
+*        nk_widget(...);
+*        //
+*        // third row uses 0 for height which will use auto layouting
+*        nk_layout_row_dynamic(&ctx, 0, 2);
+*        nk_widget(...);
+*        nk_widget(...);
+*    }
+*    nk_end(...);
+*    ```
 *
-* 2.  __nk_layout_row_static__<br /><br />
-*     Another easy layouting function is `nk_layout_row_static`. It provides each
-*     widget with same horizontal pixel width inside the row and does not grow
-*     if the owning window scales smaller or bigger.
+* 2. __nk_layout_row_static__<br /><br />
+*    Another easy layouting function is `nk_layout_row_static`. It provides each
+*    widget with same horizontal pixel width inside the row and does not grow
+*    if the owning window scales smaller or bigger.
 *
-*     ```c
-*     if (nk_begin_xxx(...) {
-*         // first row with height: 30 composed of two widgets with width: 80
-*         nk_layout_row_static(&ctx, 30, 80, 2);
-*         nk_widget(...);
-*         nk_widget(...);
-*         //
-*         // second row with same parameter as defined above
-*         nk_widget(...);
-*         nk_widget(...);
-*         //
-*         // third row uses 0 for height which will use auto layouting
-*         nk_layout_row_static(&ctx, 0, 80, 2);
-*         nk_widget(...);
-*         nk_widget(...);
-*     }
-*     nk_end(...);
-*     ```
+*    ```c
+*    if (nk_begin_xxx(...) {
+*        // first row with height: 30 composed of two widgets with width: 80
+*        nk_layout_row_static(&ctx, 30, 80, 2);
+*        nk_widget(...);
+*        nk_widget(...);
+*        //
+*        // second row with same parameter as defined above
+*        nk_widget(...);
+*        nk_widget(...);
+*        //
+*        // third row uses 0 for height which will use auto layouting
+*        nk_layout_row_static(&ctx, 0, 80, 2);
+*        nk_widget(...);
+*        nk_widget(...);
+*    }
+*    nk_end(...);
+*    ```
 *
-* 3.  __nk_layout_row_xxx__<br /><br />
-*     A little bit more advanced layouting API are functions `nk_layout_row_begin`,
-*     `nk_layout_row_push` and `nk_layout_row_end`. They allow to directly
-*     specify each column pixel or window ratio in a row. It supports either
-*     directly setting per column pixel width or widget window ratio but not
-*     both. Furthermore it is a immediate mode API so each value is directly
-*     pushed before calling a widget. Therefore the layout is not automatically
-*     repeating like the last two layouting functions.
+* 3. __nk_layout_row_xxx__<br /><br />
+*    A little bit more advanced layouting API are functions `nk_layout_row_begin`,
+*    `nk_layout_row_push` and `nk_layout_row_end`. They allow to directly
+*    specify each column pixel or window ratio in a row. It supports either
+*    directly setting per column pixel width or widget window ratio but not
+*    both. Furthermore it is a immediate mode API so each value is directly
+*    pushed before calling a widget. Therefore the layout is not automatically
+*    repeating like the last two layouting functions.
 *
-*     ```c
-*     if (nk_begin_xxx(...) {
-*         // first row with height: 25 composed of two widgets with width 60 and 40
-*         nk_layout_row_begin(ctx, NK_STATIC, 25, 2);
-*         nk_layout_row_push(ctx, 60);
-*         nk_widget(...);
-*         nk_layout_row_push(ctx, 40);
-*         nk_widget(...);
-*         nk_layout_row_end(ctx);
-*         //
-*         // second row with height: 25 composed of two widgets with window ratio 0.25 and 0.75
-*         nk_layout_row_begin(ctx, NK_DYNAMIC, 25, 2);
-*         nk_layout_row_push(ctx, 0.25f);
-*         nk_widget(...);
-*         nk_layout_row_push(ctx, 0.75f);
-*         nk_widget(...);
-*         nk_layout_row_end(ctx);
-*         //
-*         // third row with auto generated height: composed of two widgets with window ratio 0.25 and 0.75
-*         nk_layout_row_begin(ctx, NK_DYNAMIC, 0, 2);
-*         nk_layout_row_push(ctx, 0.25f);
-*         nk_widget(...);
-*         nk_layout_row_push(ctx, 0.75f);
-*         nk_widget(...);
-*         nk_layout_row_end(ctx);
-*     }
-*     nk_end(...);
-*     ```
+*    ```c
+*    if (nk_begin_xxx(...) {
+*        // first row with height: 25 composed of two widgets with width 60 and 40
+*        nk_layout_row_begin(ctx, NK_STATIC, 25, 2);
+*        nk_layout_row_push(ctx, 60);
+*        nk_widget(...);
+*        nk_layout_row_push(ctx, 40);
+*        nk_widget(...);
+*        nk_layout_row_end(ctx);
+*        //
+*        // second row with height: 25 composed of two widgets with window ratio 0.25 and 0.75
+*        nk_layout_row_begin(ctx, NK_DYNAMIC, 25, 2);
+*        nk_layout_row_push(ctx, 0.25f);
+*        nk_widget(...);
+*        nk_layout_row_push(ctx, 0.75f);
+*        nk_widget(...);
+*        nk_layout_row_end(ctx);
+*        //
+*        // third row with auto generated height: composed of two widgets with window ratio 0.25 and 0.75
+*        nk_layout_row_begin(ctx, NK_DYNAMIC, 0, 2);
+*        nk_layout_row_push(ctx, 0.25f);
+*        nk_widget(...);
+*        nk_layout_row_push(ctx, 0.75f);
+*        nk_widget(...);
+*        nk_layout_row_end(ctx);
+*    }
+*    nk_end(...);
+*    ```
 *
-* 4.  __nk_layout_row__<br /><br />
-*     The array counterpart to API nk_layout_row_xxx is the single nk_layout_row
-*     functions. Instead of pushing either pixel or window ratio for every widget
-*     it allows to define it by array. The trade of for less control is that
-*     `nk_layout_row` is automatically repeating. Otherwise the behavior is the
-*     same.
+* 4. __nk_layout_row__<br /><br />
+*    The array counterpart to API nk_layout_row_xxx is the single nk_layout_row
+*    functions. Instead of pushing either pixel or window ratio for every widget
+*    it allows to define it by array. The trade of for less control is that
+*    `nk_layout_row` is automatically repeating. Otherwise the behavior is the
+*    same.
 *
-*     ```c
-*     if (nk_begin_xxx(...) {
-*         // two rows with height: 30 composed of two widgets with width 60 and 40
-*         const float ratio[] = {60,40};
-*         nk_layout_row(ctx, NK_STATIC, 30, 2, ratio);
-*         nk_widget(...);
-*         nk_widget(...);
-*         nk_widget(...);
-*         nk_widget(...);
-*         //
-*         // two rows with height: 30 composed of two widgets with window ratio 0.25 and 0.75
-*         const float ratio[] = {0.25, 0.75};
-*         nk_layout_row(ctx, NK_DYNAMIC, 30, 2, ratio);
-*         nk_widget(...);
-*         nk_widget(...);
-*         nk_widget(...);
-*         nk_widget(...);
-*         //
-*         // two rows with auto generated height composed of two widgets with window ratio 0.25 and 0.75
-*         const float ratio[] = {0.25, 0.75};
-*         nk_layout_row(ctx, NK_DYNAMIC, 30, 2, ratio);
-*         nk_widget(...);
-*         nk_widget(...);
-*         nk_widget(...);
-*         nk_widget(...);
-*     }
-*     nk_end(...);
-*     ```
+*    ```c
+*    if (nk_begin_xxx(...) {
+*        // two rows with height: 30 composed of two widgets with width 60 and 40
+*        const float ratio[] = {60,40};
+*        nk_layout_row(ctx, NK_STATIC, 30, 2, ratio);
+*        nk_widget(...);
+*        nk_widget(...);
+*        nk_widget(...);
+*        nk_widget(...);
+*        //
+*        // two rows with height: 30 composed of two widgets with window ratio 0.25 and 0.75
+*        const float ratio[] = {0.25, 0.75};
+*        nk_layout_row(ctx, NK_DYNAMIC, 30, 2, ratio);
+*        nk_widget(...);
+*        nk_widget(...);
+*        nk_widget(...);
+*        nk_widget(...);
+*        //
+*        // two rows with auto generated height composed of two widgets with window ratio 0.25 and 0.75
+*        const float ratio[] = {0.25, 0.75};
+*        nk_layout_row(ctx, NK_DYNAMIC, 30, 2, ratio);
+*        nk_widget(...);
+*        nk_widget(...);
+*        nk_widget(...);
+*        nk_widget(...);
+*    }
+*    nk_end(...);
+*    ```
 *
-* 5.  __nk_layout_row_template_xxx__<br /><br />
-*     The most complex and second most flexible API is a simplified flexbox version without
-*     line wrapping and weights for dynamic widgets. It is an immediate mode API but
-*     unlike `nk_layout_row_xxx` it has auto repeat behavior and needs to be called
-*     before calling the templated widgets.
-*     The row template layout has three different per widget size specifier. The first
-*     one is the `nk_layout_row_template_push_static`  with fixed widget pixel width.
-*     They do not grow if the row grows and will always stay the same.
-*     The second size specifier is `nk_layout_row_template_push_variable`
-*     which defines a minimum widget size but it also can grow if more space is available
-*     not taken by other widgets.
-*     Finally there are dynamic widgets with `nk_layout_row_template_push_dynamic`
-*     which are completely flexible and unlike variable widgets can even shrink
-*     to zero if not enough space is provided.
+* 5. __nk_layout_row_template_xxx__<br /><br />
+*    The most complex and second most flexible API is a simplified flexbox version without
+*    line wrapping and weights for dynamic widgets. It is an immediate mode API but
+*    unlike `nk_layout_row_xxx` it has auto repeat behavior and needs to be called
+*    before calling the templated widgets.
+*    The row template layout has three different per widget size specifier. The first
+*    one is the `nk_layout_row_template_push_static`  with fixed widget pixel width.
+*    They do not grow if the row grows and will always stay the same.
+*    The second size specifier is `nk_layout_row_template_push_variable`
+*    which defines a minimum widget size but it also can grow if more space is available
+*    not taken by other widgets.
+*    Finally there are dynamic widgets with `nk_layout_row_template_push_dynamic`
+*    which are completely flexible and unlike variable widgets can even shrink
+*    to zero if not enough space is provided.
 *
-*     ```c
-*     if (nk_begin_xxx(...) {
-*         // two rows with height: 30 composed of three widgets
-*         nk_layout_row_template_begin(ctx, 30);
-*         nk_layout_row_template_push_dynamic(ctx);
-*         nk_layout_row_template_push_variable(ctx, 80);
-*         nk_layout_row_template_push_static(ctx, 80);
-*         nk_layout_row_template_end(ctx);
-*         //
-*         // first row
-*         nk_widget(...); // dynamic widget can go to zero if not enough space
-*         nk_widget(...); // variable widget with min 80 pixel but can grow bigger if enough space
-*         nk_widget(...); // static widget with fixed 80 pixel width
-*         //
-*         // second row same layout
-*         nk_widget(...);
-*         nk_widget(...);
-*         nk_widget(...);
-*     }
-*     nk_end(...);
-*     ```
+*    ```c
+*    if (nk_begin_xxx(...) {
+*        // two rows with height: 30 composed of three widgets
+*        nk_layout_row_template_begin(ctx, 30);
+*        nk_layout_row_template_push_dynamic(ctx);
+*        nk_layout_row_template_push_variable(ctx, 80);
+*        nk_layout_row_template_push_static(ctx, 80);
+*        nk_layout_row_template_end(ctx);
+*        //
+*        // first row
+*        nk_widget(...); // dynamic widget can go to zero if not enough space
+*        nk_widget(...); // variable widget with min 80 pixel but can grow bigger if enough space
+*        nk_widget(...); // static widget with fixed 80 pixel width
+*        //
+*        // second row same layout
+*        nk_widget(...);
+*        nk_widget(...);
+*        nk_widget(...);
+*    }
+*    nk_end(...);
+*    ```
 *
-* 6.  __nk_layout_space_xxx__<br /><br />
-*     Finally the most flexible API directly allows you to place widgets inside the
-*     window. The space layout API is an immediate mode API which does not support
-*     row auto repeat and directly sets position and size of a widget. Position
-*     and size hereby can be either specified as ratio of allocated space or
-*     allocated space local position and pixel size. Since this API is quite
-*     powerful there are a number of utility functions to get the available space
-*     and convert between local allocated space and screen space.
+* 6. __nk_layout_space_xxx__<br /><br />
+*    Finally the most flexible API directly allows you to place widgets inside the
+*    window. The space layout API is an immediate mode API which does not support
+*    row auto repeat and directly sets position and size of a widget. Position
+*    and size hereby can be either specified as ratio of allocated space or
+*    allocated space local position and pixel size. Since this API is quite
+*    powerful there are a number of utility functions to get the available space
+*    and convert between local allocated space and screen space.
 *
-*     ```c
-*     if (nk_begin_xxx(...) {
-*         // static row with height: 500 (you can set column count to INT_MAX if you don't want to be bothered)
-*         nk_layout_space_begin(ctx, NK_STATIC, 500, INT_MAX);
-*         nk_layout_space_push(ctx, nk_rect(0,0,150,200));
-*         nk_widget(...);
-*         nk_layout_space_push(ctx, nk_rect(200,200,100,200));
-*         nk_widget(...);
-*         nk_layout_space_end(ctx);
-*         //
-*         // dynamic row with height: 500 (you can set column count to INT_MAX if you don't want to be bothered)
-*         nk_layout_space_begin(ctx, NK_DYNAMIC, 500, INT_MAX);
-*         nk_layout_space_push(ctx, nk_rect(0.5,0.5,0.1,0.1));
-*         nk_widget(...);
-*         nk_layout_space_push(ctx, nk_rect(0.7,0.6,0.1,0.1));
-*         nk_widget(...);
-*     }
-*     nk_end(...);
-*     ```
+*    ```c
+*    if (nk_begin_xxx(...) {
+*        // static row with height: 500 (you can set column count to INT_MAX if you don't want to be bothered)
+*        nk_layout_space_begin(ctx, NK_STATIC, 500, INT_MAX);
+*        nk_layout_space_push(ctx, nk_rect(0,0,150,200));
+*        nk_widget(...);
+*        nk_layout_space_push(ctx, nk_rect(200,200,100,200));
+*        nk_widget(...);
+*        nk_layout_space_end(ctx);
+*        //
+*        // dynamic row with height: 500 (you can set column count to INT_MAX if you don't want to be bothered)
+*        nk_layout_space_begin(ctx, NK_DYNAMIC, 500, INT_MAX);
+*        nk_layout_space_push(ctx, nk_rect(0.5,0.5,0.1,0.1));
+*        nk_widget(...);
+*        nk_layout_space_push(ctx, nk_rect(0.7,0.6,0.1,0.1));
+*        nk_widget(...);
+*    }
+*    nk_end(...);
+*    ```
 *
 * # Reference
 * Function                                     | Description
@@ -1873,14 +1854,13 @@ Widget_Align :: enum i32 {
 * \ref nk_layout_space_rect_to_screen          | Converts rectangle from nk_layout_space coordinate space into screen space
 * \ref nk_layout_space_rect_to_local           | Converts rectangle from screen space into nk_layout_space coordinates
 */
-Widget_Alignment :: bit_set[Widget_Align; i32]
+widget_alignment :: bit_set[widget_align; u32]
 
 @(default_calling_convention="c", link_prefix="nk_")
 foreign lib {
 	/**
 	* Sets the currently used minimum row height.
-	* !!! \warning
-	*     The passed height needs to include both your preferred row height
+	* \warning The passed height needs to include both your preferred row height
 	*     as well as padding. No internal padding is added.
 	*
 	* ```c
@@ -1890,7 +1870,7 @@ foreign lib {
 	* \param[in] ctx     | Must point to an previously initialized `nk_context` struct after call `nk_begin_xxx`
 	* \param[in] height  | New minimum row height to be used for auto generating the row height
 	*/
-	layout_set_min_row_height :: proc(_: ^Context, height: f32) ---
+	layout_set_min_row_height :: proc(_: ^context, height: f32) ---
 
 	/**
 	* Reset the currently used minimum row height back to `font_height + text_padding + padding`
@@ -1900,7 +1880,7 @@ foreign lib {
 	*
 	* \param[in] ctx     | Must point to an previously initialized `nk_context` struct after call `nk_begin_xxx`
 	*/
-	layout_reset_min_row_height :: proc(^Context) ---
+	layout_reset_min_row_height :: proc(^context) ---
 
 	/**
 	* \brief Returns the width of the next row allocate by one of the layouting functions
@@ -1914,7 +1894,7 @@ foreign lib {
 	*
 	* \return `nk_rect` with both position and size of the next row
 	*/
-	layout_widget_bounds :: proc(ctx: ^Context) -> Rect ---
+	layout_widget_bounds :: proc(ctx: ^context) -> rect ---
 
 	/**
 	* \brief Utility functions to calculate window ratio from pixel size
@@ -1929,7 +1909,7 @@ foreign lib {
 	*
 	* \returns `nk_rect` with both position and size of the next row
 	*/
-	layout_ratio_from_pixel :: proc(ctx: ^Context, pixel_width: f32) -> f32 ---
+	layout_ratio_from_pixel :: proc(ctx: ^context, pixel_width: f32) -> f32 ---
 
 	/**
 	* \brief Sets current row layout to share horizontal space
@@ -1945,7 +1925,7 @@ foreign lib {
 	* \param[in] height  | Holds height of each widget in row or zero for auto layouting
 	* \param[in] columns | Number of widget inside row
 	*/
-	layout_row_dynamic :: proc(ctx: ^Context, height: f32, cols: i32) ---
+	layout_row_dynamic :: proc(ctx: ^context, height: f32, cols: i32) ---
 
 	/**
 	* \brief Sets current row layout to fill @cols number of widgets
@@ -1962,7 +1942,7 @@ foreign lib {
 	* \param[in] width   | Holds pixel width of each widget in the row
 	* \param[in] columns | Number of widget inside row
 	*/
-	layout_row_static :: proc(ctx: ^Context, height: f32, item_width: i32, cols: i32) ---
+	layout_row_static :: proc(ctx: ^context, height: f32, item_width: i32, cols: i32) ---
 
 	/**
 	* \brief Starts a new dynamic or fixed row with given height and columns.
@@ -1977,7 +1957,7 @@ foreign lib {
 	* \param[in] height  | holds height of each widget in row or zero for auto layouting
 	* \param[in] columns | Number of widget inside row
 	*/
-	layout_row_begin :: proc(ctx: ^Context, fmt: Layout_Format, row_height: f32, cols: i32) ---
+	layout_row_begin :: proc(ctx: ^context, fmt: layout_format, row_height: f32, cols: i32) ---
 
 	/**
 	* \breif Specifies either window ratio or width of a single column
@@ -1990,7 +1970,7 @@ foreign lib {
 	* \param[in] ctx     | Must point to an previously initialized `nk_context` struct after call `nk_begin_xxx`
 	* \param[in] value   | either a window ratio or fixed width depending on @fmt in previous `nk_layout_row_begin` call
 	*/
-	layout_row_push :: proc(_: ^Context, value: f32) ---
+	layout_row_push :: proc(_: ^context, value: f32) ---
 
 	/**
 	* \brief Finished previously started row
@@ -2002,7 +1982,7 @@ foreign lib {
 	*
 	* \param[in] ctx     | Must point to an previously initialized `nk_context` struct after call `nk_begin_xxx`
 	*/
-	layout_row_end :: proc(^Context) ---
+	layout_row_end :: proc(^context) ---
 
 	/**
 	* \brief Specifies row columns in array as either window ratio or size
@@ -2017,7 +1997,7 @@ foreign lib {
 	* \param[in] height  | Holds height of each widget in row or zero for auto layouting
 	* \param[in] columns | Number of widget inside row
 	*/
-	layout_row :: proc(_: ^Context, _: Layout_Format, height: f32, cols: i32, ratio: ^f32) ---
+	layout_row :: proc(_: ^context, _: layout_format, height: f32, cols: i32, ratio: ^f32) ---
 
 	/**
 	* # # nk_layout_row_template_begin
@@ -2031,7 +2011,7 @@ foreign lib {
 	* \param[in] ctx     | Must point to an previously initialized `nk_context` struct after call `nk_begin_xxx`
 	* \param[in] height  | Holds height of each widget in row or zero for auto layouting
 	*/
-	layout_row_template_begin :: proc(_: ^Context, row_height: f32) ---
+	layout_row_template_begin :: proc(_: ^context, row_height: f32) ---
 
 	/**
 	* # # nk_layout_row_template_push_dynamic
@@ -2045,7 +2025,7 @@ foreign lib {
 	* \param[in] ctx     | Must point to an previously initialized `nk_context` struct after call `nk_begin_xxx`
 	* \param[in] height  | Holds height of each widget in row or zero for auto layouting
 	*/
-	layout_row_template_push_dynamic :: proc(^Context) ---
+	layout_row_template_push_dynamic :: proc(^context) ---
 
 	/**
 	* # # nk_layout_row_template_push_variable
@@ -2059,7 +2039,7 @@ foreign lib {
 	* \param[in] ctx     | Must point to an previously initialized `nk_context` struct after call `nk_begin_xxx`
 	* \param[in] width   | Holds the minimum pixel width the next column must always be
 	*/
-	layout_row_template_push_variable :: proc(_: ^Context, min_width: f32) ---
+	layout_row_template_push_variable :: proc(_: ^context, min_width: f32) ---
 
 	/**
 	* # # nk_layout_row_template_push_static
@@ -2073,7 +2053,7 @@ foreign lib {
 	* \param[in] ctx     | Must point to an previously initialized `nk_context` struct after call `nk_begin_xxx`
 	* \param[in] width   | Holds the absolute pixel width value the next column must be
 	*/
-	layout_row_template_push_static :: proc(_: ^Context, width: f32) ---
+	layout_row_template_push_static :: proc(_: ^context, width: f32) ---
 
 	/**
 	* # # nk_layout_row_template_end
@@ -2086,7 +2066,7 @@ foreign lib {
 	* ------------|-----------------------------------------------------------
 	* \param[in] ctx     | Must point to an previously initialized `nk_context` struct after call `nk_begin_xxx`
 	*/
-	layout_row_template_end :: proc(^Context) ---
+	layout_row_template_end :: proc(^context) ---
 
 	/**
 	* # # nk_layout_space_begin
@@ -2102,7 +2082,7 @@ foreign lib {
 	* \param[in] height  | Holds height of each widget in row or zero for auto layouting
 	* \param[in] columns | Number of widgets inside row
 	*/
-	layout_space_begin :: proc(_: ^Context, _: Layout_Format, height: f32, widget_count: i32) ---
+	layout_space_begin :: proc(_: ^context, _: layout_format, height: f32, widget_count: i32) ---
 
 	/**
 	* # # nk_layout_space_push
@@ -2114,9 +2094,9 @@ foreign lib {
 	* Parameter   | Description
 	* ------------|-----------------------------------------------------------
 	* \param[in] ctx     | Must point to an previously initialized `nk_context` struct after call `nk_layout_space_begin`
-	* \param[in] bounds  | Position and size in laoyut space local coordinates
+	* \param[in] bounds  | Position and size in layout space local coordinates
 	*/
-	layout_space_push :: proc(_: ^Context, bounds: Rect) ---
+	layout_space_push :: proc(_: ^context, bounds: rect) ---
 
 	/**
 	* # # nk_layout_space_end
@@ -2129,7 +2109,7 @@ foreign lib {
 	* ------------|-----------------------------------------------------------
 	* \param[in] ctx     | Must point to an previously initialized `nk_context` struct after call `nk_layout_space_begin`
 	*/
-	layout_space_end :: proc(^Context) ---
+	layout_space_end :: proc(^context) ---
 
 	/**
 	* # # nk_layout_space_bounds
@@ -2144,7 +2124,7 @@ foreign lib {
 	*
 	* \returns `nk_rect` holding the total space allocated
 	*/
-	layout_space_bounds :: proc(ctx: ^Context) -> Rect ---
+	layout_space_bounds :: proc(ctx: ^context) -> rect ---
 
 	/**
 	* # # nk_layout_space_to_screen
@@ -2160,7 +2140,7 @@ foreign lib {
 	*
 	* \returns transformed `nk_vec2` in screen space coordinates
 	*/
-	layout_space_to_screen :: proc(ctx: ^Context, vec: Vec2) -> Vec2 ---
+	layout_space_to_screen :: proc(ctx: ^context, vec: vec2) -> vec2 ---
 
 	/**
 	* # # nk_layout_space_to_local
@@ -2176,7 +2156,7 @@ foreign lib {
 	*
 	* \returns transformed `nk_vec2` in layout space coordinates
 	*/
-	layout_space_to_local :: proc(ctx: ^Context, vec: Vec2) -> Vec2 ---
+	layout_space_to_local :: proc(ctx: ^context, vec: vec2) -> vec2 ---
 
 	/**
 	* # # nk_layout_space_rect_to_screen
@@ -2192,7 +2172,7 @@ foreign lib {
 	*
 	* \returns transformed `nk_rect` in screen space coordinates
 	*/
-	layout_space_rect_to_screen :: proc(ctx: ^Context, bounds: Rect) -> Rect ---
+	layout_space_rect_to_screen :: proc(ctx: ^context, bounds: rect) -> rect ---
 
 	/**
 	* # # nk_layout_space_rect_to_local
@@ -2208,7 +2188,7 @@ foreign lib {
 	*
 	* \returns transformed `nk_rect` in layout space coordinates
 	*/
-	layout_space_rect_to_local :: proc(ctx: ^Context, bounds: Rect) -> Rect ---
+	layout_space_rect_to_local :: proc(ctx: ^context, bounds: rect) -> rect ---
 
 	/**
 	* # # nk_spacer
@@ -2222,7 +2202,7 @@ foreign lib {
 	* \param[in] ctx     | Must point to an previously initialized `nk_context` struct after call `nk_layout_space_begin`
 	*
 	*/
-	spacer :: proc(ctx: ^Context) ---
+	spacer :: proc(ctx: ^context) ---
 
 	/**
 	* \brief Starts a new widget group. Requires a previous layouting function to specify a pos/size.
@@ -2238,7 +2218,7 @@ foreign lib {
 	*
 	* \returns `true(1)` if visible and fillable with widgets or `false(0)` otherwise
 	*/
-	group_begin :: proc(_: ^Context, title: cstring, _: Panel_Flags) -> bool ---
+	group_begin :: proc(_: ^context, title: cstring, _: panel_flags) -> bool ---
 
 	/**
 	* \brief Starts a new widget group. Requires a previous layouting function to specify a pos/size.
@@ -2253,7 +2233,7 @@ foreign lib {
 	*
 	* \returns `true(1)` if visible and fillable with widgets or `false(0)` otherwise
 	*/
-	group_begin_titled :: proc(_: ^Context, name: cstring, title: cstring, _: Panel_Flags) -> bool ---
+	group_begin_titled :: proc(_: ^context, name: cstring, title: cstring, _: panel_flags) -> bool ---
 
 	/**
 	* # # nk_group_end
@@ -2266,7 +2246,7 @@ foreign lib {
 	* ------------|-----------------------------------------------------------
 	* \param[in] ctx     | Must point to an previously initialized `nk_context` struct
 	*/
-	group_end :: proc(^Context) ---
+	group_end :: proc(^context) ---
 
 	/**
 	* # # nk_group_scrolled_offset_begin
@@ -2286,7 +2266,7 @@ foreign lib {
 	*
 	* \returns `true(1)` if visible and fillable with widgets or `false(0)` otherwise
 	*/
-	group_scrolled_offset_begin :: proc(_: ^Context, x_offset: ^u32, y_offset: ^u32, title: cstring, flags: Panel_Flags) -> bool ---
+	group_scrolled_offset_begin :: proc(_: ^context, x_offset: ^u32, y_offset: ^u32, title: cstring, flags: panel_flags) -> bool ---
 
 	/**
 	* # # nk_group_scrolled_begin
@@ -2305,7 +2285,7 @@ foreign lib {
 	*
 	* \returns `true(1)` if visible and fillable with widgets or `false(0)` otherwise
 	*/
-	group_scrolled_begin :: proc(_: ^Context, off: ^Scroll, title: cstring, _: Panel_Flags) -> bool ---
+	group_scrolled_begin :: proc(_: ^context, off: ^scroll, title: cstring, _: panel_flags) -> bool ---
 
 	/**
 	* # # nk_group_scrolled_end
@@ -2318,7 +2298,7 @@ foreign lib {
 	* ------------|-----------------------------------------------------------
 	* \param[in] ctx     | Must point to an previously initialized `nk_context` struct
 	*/
-	group_scrolled_end :: proc(^Context) ---
+	group_scrolled_end :: proc(^context) ---
 
 	/**
 	* # # nk_group_get_scroll
@@ -2334,7 +2314,7 @@ foreign lib {
 	* \param[in] x_offset | A pointer to the x offset output (or NULL to ignore)
 	* \param[in] y_offset | A pointer to the y offset output (or NULL to ignore)
 	*/
-	group_get_scroll :: proc(_: ^Context, id: cstring, x_offset: ^u32, y_offset: ^u32) ---
+	group_get_scroll :: proc(_: ^context, id: cstring, x_offset: ^u32, y_offset: ^u32) ---
 
 	/**
 	* # # nk_group_set_scroll
@@ -2350,7 +2330,7 @@ foreign lib {
 	* \param[in] x_offset | The x offset to scroll to
 	* \param[in] y_offset | The y offset to scroll to
 	*/
-	group_set_scroll :: proc(_: ^Context, id: cstring, x_offset: u32, y_offset: u32) ---
+	group_set_scroll :: proc(_: ^context, id: cstring, x_offset: u32, y_offset: u32) ---
 
 	/**
 	* # # nk_tree_push_hashed
@@ -2372,7 +2352,7 @@ foreign lib {
 	*
 	* \returns `true(1)` if visible and fillable with widgets or `false(0)` otherwise
 	*/
-	tree_push_hashed :: proc(_: ^Context, _: Tree_Type, title: cstring, initial_state: Collapse_States, hash: cstring, len: i32, seed: i32) -> bool ---
+	tree_push_hashed :: proc(_: ^context, _: tree_type, title: cstring, initial_state: collapse_states, hash: cstring, len: i32, seed: i32) -> bool ---
 
 	/**
 	* # # nk_tree_image_push_hashed
@@ -2395,7 +2375,7 @@ foreign lib {
 	*
 	* \returns `true(1)` if visible and fillable with widgets or `false(0)` otherwise
 	*/
-	tree_image_push_hashed :: proc(_: ^Context, _: Tree_Type, _: Image, title: cstring, initial_state: Collapse_States, hash: cstring, len: i32, seed: i32) -> bool ---
+	tree_image_push_hashed :: proc(_: ^context, _: tree_type, _: image, title: cstring, initial_state: collapse_states, hash: cstring, len: i32, seed: i32) -> bool ---
 
 	/**
 	* # # nk_tree_pop
@@ -2408,7 +2388,7 @@ foreign lib {
 	* ------------|-----------------------------------------------------------
 	* \param[in] ctx     | Must point to an previously initialized `nk_context` struct after calling `nk_tree_xxx_push_xxx`
 	*/
-	tree_pop :: proc(^Context) ---
+	tree_pop :: proc(^context) ---
 
 	/**
 	* # # nk_tree_state_push
@@ -2426,7 +2406,7 @@ foreign lib {
 	*
 	* \returns `true(1)` if visible and fillable with widgets or `false(0)` otherwise
 	*/
-	tree_state_push :: proc(_: ^Context, _: Tree_Type, title: cstring, state: ^Collapse_States) -> bool ---
+	tree_state_push :: proc(_: ^context, _: tree_type, title: cstring, state: ^collapse_states) -> bool ---
 
 	/**
 	* # # nk_tree_state_image_push
@@ -2445,7 +2425,7 @@ foreign lib {
 	*
 	* \returns `true(1)` if visible and fillable with widgets or `false(0)` otherwise
 	*/
-	tree_state_image_push :: proc(_: ^Context, _: Tree_Type, _: Image, title: cstring, state: ^Collapse_States) -> bool ---
+	tree_state_image_push :: proc(_: ^context, _: tree_type, _: image, title: cstring, state: ^collapse_states) -> bool ---
 
 	/**
 	* # # nk_tree_state_pop
@@ -2458,10 +2438,10 @@ foreign lib {
 	* ------------|-----------------------------------------------------------
 	* \param[in] ctx     | Must point to an previously initialized `nk_context` struct after calling `nk_tree_xxx_push_xxx`
 	*/
-	tree_state_pop                 :: proc(^Context) ---
-	tree_element_push_hashed       :: proc(_: ^Context, _: Tree_Type, title: cstring, initial_state: Collapse_States, selected: ^bool, hash: cstring, len: i32, seed: i32) -> bool ---
-	tree_element_image_push_hashed :: proc(_: ^Context, _: Tree_Type, _: Image, title: cstring, initial_state: Collapse_States, selected: ^bool, hash: cstring, len: i32, seed: i32) -> bool ---
-	tree_element_pop               :: proc(^Context) ---
+	tree_state_pop                 :: proc(^context) ---
+	tree_element_push_hashed       :: proc(_: ^context, _: tree_type, title: cstring, initial_state: collapse_states, selected: ^bool, hash: cstring, len: i32, seed: i32) -> bool ---
+	tree_element_image_push_hashed :: proc(_: ^context, _: tree_type, _: image, title: cstring, initial_state: collapse_states, selected: ^bool, hash: cstring, len: i32, seed: i32) -> bool ---
+	tree_element_pop               :: proc(^context) ---
 }
 
 /* =============================================================================
@@ -2469,21 +2449,21 @@ foreign lib {
 *                                  LIST VIEW
 *
 * ============================================================================= */
-List_View :: struct {
+list_view :: struct {
 	/* public: */
 	begin, end, count: i32,
 
 	/* private: */
 	total_height:   i32,
-	ctx:            ^Context,
+	ctx:            ^context,
 	scroll_pointer: ^u32,
 	scroll_value:   u32,
 }
 
 @(default_calling_convention="c", link_prefix="nk_")
 foreign lib {
-	list_view_begin :: proc(_: ^Context, out: ^List_View, id: cstring, _: Panel_Flags, row_height: i32, row_count: i32) -> bool ---
-	list_view_end   :: proc(^List_View) ---
+	list_view_begin :: proc(_: ^context, out: ^list_view, id: cstring, _: panel_flags, row_height: i32, row_count: i32) -> bool ---
+	list_view_end   :: proc(^list_view) ---
 }
 
 /* =============================================================================
@@ -2491,14 +2471,14 @@ foreign lib {
 *                                  WIDGET
 *
 * ============================================================================= */
-Widget_Layout_States :: enum i32 {
+widget_layout_states :: enum u32 {
 	INVALID  = 0, /**< The widget cannot be seen and is completely out of view */
 	VALID    = 1, /**< The widget is completely inside the window and can be updated and drawn */
 	ROM      = 2, /**< The widget is partially visible and cannot be updated */
 	DISABLED = 3, /**< The widget is manually disabled and acts like NK_WIDGET_ROM */
 }
 
-Widget_States :: enum i32 {
+widget_states :: enum u32 {
 	MODIFIED = 2,
 	INACTIVE = 4,  /**!< widget is neither active nor hovered */
 	ENTERED  = 8,  /**!< widget has been hovered on the current frame */
@@ -2511,22 +2491,21 @@ Widget_States :: enum i32 {
 
 @(default_calling_convention="c", link_prefix="nk_")
 foreign lib {
-	widget                      :: proc(^Rect, ^Context) -> Widget_Layout_States ---
-	widget_fitting              :: proc(^Rect, ^Context, Vec2) -> Widget_Layout_States ---
-	widget_bounds               :: proc(^Context) -> Rect ---
-	widget_position             :: proc(^Context) -> Vec2 ---
-	widget_size                 :: proc(^Context) -> Vec2 ---
-	widget_width                :: proc(^Context) -> f32 ---
-	widget_height               :: proc(^Context) -> f32 ---
-	widget_is_hovered           :: proc(^Context) -> bool ---
-	widget_is_mouse_clicked     :: proc(^Context, Buttons) -> bool ---
-	widget_has_mouse_click_down :: proc(_: ^Context, _: Buttons, down: bool) -> bool ---
-	spacing                     :: proc(_: ^Context, cols: i32) ---
-	widget_disable_begin        :: proc(ctx: ^Context) ---
-	widget_disable_end          :: proc(ctx: ^Context) ---
+	widget                      :: proc(^rect, ^context) -> widget_layout_states ---
+	widget_bounds               :: proc(^context) -> rect ---
+	widget_position             :: proc(^context) -> vec2 ---
+	widget_size                 :: proc(^context) -> vec2 ---
+	widget_width                :: proc(^context) -> f32 ---
+	widget_height               :: proc(^context) -> f32 ---
+	widget_is_hovered           :: proc(^context) -> bool ---
+	widget_is_mouse_clicked     :: proc(^context, buttons) -> bool ---
+	widget_has_mouse_click_down :: proc(_: ^context, _: buttons, down: bool) -> bool ---
+	spacing                     :: proc(_: ^context, cols: i32) ---
+	widget_disable_begin        :: proc(ctx: ^context) ---
+	widget_disable_end          :: proc(ctx: ^context) ---
 }
 
-Text_Align :: enum i32 {
+text_align :: enum u32 {
 	LEFT     = 0,
 	CENTERED = 1,
 	RIGHT    = 2,
@@ -2540,128 +2519,128 @@ Text_Align :: enum i32 {
 *                                  TEXT
 *
 * ============================================================================= */
-Text_Alignment :: bit_set[Text_Align; i32]
+text_alignment :: bit_set[text_align; u32]
 
 @(default_calling_convention="c", link_prefix="nk_")
 foreign lib {
-	text               :: proc(^Context, cstring, i32, Text_Alignment) ---
-	text_colored       :: proc(^Context, cstring, i32, Text_Alignment, Color) ---
-	text_wrap          :: proc(^Context, cstring, i32) ---
-	text_wrap_colored  :: proc(^Context, cstring, i32, Color) ---
-	label              :: proc(_: ^Context, _: cstring, align: Text_Alignment) ---
-	label_colored      :: proc(_: ^Context, _: cstring, align: Text_Alignment, _: Color) ---
-	label_wrap         :: proc(^Context, cstring) ---
-	label_colored_wrap :: proc(^Context, cstring, Color) ---
-	image_color        :: proc(^Context, Image, Color) ---
+	text               :: proc(^context, cstring, i32, text_alignment) ---
+	text_colored       :: proc(^context, cstring, i32, text_alignment, color) ---
+	text_wrap          :: proc(^context, cstring, i32) ---
+	text_wrap_colored  :: proc(^context, cstring, i32, color) ---
+	label              :: proc(_: ^context, _: cstring, align: text_alignment) ---
+	label_colored      :: proc(_: ^context, _: cstring, align: text_alignment, _: color) ---
+	label_wrap         :: proc(^context, cstring) ---
+	label_colored_wrap :: proc(^context, cstring, color) ---
+	image_color        :: proc(^context, image, color) ---
 
 	/* =============================================================================
 	*
 	*                                  BUTTON
 	*
 	* ============================================================================= */
-	button_text                :: proc(_: ^Context, title: cstring, len: i32) -> bool ---
-	button_label               :: proc(_: ^Context, title: cstring) -> bool ---
-	button_color               :: proc(^Context, Color) -> bool ---
-	button_symbol              :: proc(^Context, Symbol_Type) -> bool ---
-	button_image               :: proc(_: ^Context, img: Image) -> bool ---
-	button_symbol_label        :: proc(_: ^Context, _: Symbol_Type, _: cstring, text_alignment: Text_Alignment) -> bool ---
-	button_symbol_text         :: proc(_: ^Context, _: Symbol_Type, _: cstring, _: i32, alignment: Text_Alignment) -> bool ---
-	button_image_label         :: proc(_: ^Context, img: Image, _: cstring, text_alignment: Text_Alignment) -> bool ---
-	button_image_text          :: proc(_: ^Context, img: Image, _: cstring, _: i32, alignment: Text_Alignment) -> bool ---
-	button_text_styled         :: proc(_: ^Context, _: ^Style_Button, title: cstring, len: i32) -> bool ---
-	button_label_styled        :: proc(_: ^Context, _: ^Style_Button, title: cstring) -> bool ---
-	button_symbol_styled       :: proc(^Context, ^Style_Button, Symbol_Type) -> bool ---
-	button_image_styled        :: proc(_: ^Context, _: ^Style_Button, img: Image) -> bool ---
-	button_symbol_text_styled  :: proc(_: ^Context, _: ^Style_Button, _: Symbol_Type, _: cstring, _: i32, alignment: Text_Alignment) -> bool ---
-	button_symbol_label_styled :: proc(ctx: ^Context, style: ^Style_Button, symbol: Symbol_Type, title: cstring, align: Text_Alignment) -> bool ---
-	button_image_label_styled  :: proc(_: ^Context, _: ^Style_Button, img: Image, _: cstring, text_alignment: Text_Alignment) -> bool ---
-	button_image_text_styled   :: proc(_: ^Context, _: ^Style_Button, img: Image, _: cstring, _: i32, alignment: Text_Alignment) -> bool ---
-	button_set_behavior        :: proc(^Context, Button_Behavior) ---
-	button_push_behavior       :: proc(^Context, Button_Behavior) -> bool ---
-	button_pop_behavior        :: proc(^Context) -> bool ---
+	button_text                :: proc(_: ^context, title: cstring, len: i32) -> bool ---
+	button_label               :: proc(_: ^context, title: cstring) -> bool ---
+	button_color               :: proc(^context, color) -> bool ---
+	button_symbol              :: proc(^context, symbol_type) -> bool ---
+	button_image               :: proc(_: ^context, img: image) -> bool ---
+	button_symbol_label        :: proc(_: ^context, _: symbol_type, _: cstring, text_alignment: text_alignment) -> bool ---
+	button_symbol_text         :: proc(_: ^context, _: symbol_type, _: cstring, _: i32, alignment: text_alignment) -> bool ---
+	button_image_label         :: proc(_: ^context, img: image, _: cstring, text_alignment: text_alignment) -> bool ---
+	button_image_text          :: proc(_: ^context, img: image, _: cstring, _: i32, alignment: text_alignment) -> bool ---
+	button_text_styled         :: proc(_: ^context, _: ^style_button, title: cstring, len: i32) -> bool ---
+	button_label_styled        :: proc(_: ^context, _: ^style_button, title: cstring) -> bool ---
+	button_symbol_styled       :: proc(^context, ^style_button, symbol_type) -> bool ---
+	button_image_styled        :: proc(_: ^context, _: ^style_button, img: image) -> bool ---
+	button_symbol_text_styled  :: proc(_: ^context, _: ^style_button, _: symbol_type, _: cstring, _: i32, alignment: text_alignment) -> bool ---
+	button_symbol_label_styled :: proc(ctx: ^context, style: ^style_button, symbol: symbol_type, title: cstring, align: text_alignment) -> bool ---
+	button_image_label_styled  :: proc(_: ^context, _: ^style_button, img: image, _: cstring, text_alignment: text_alignment) -> bool ---
+	button_image_text_styled   :: proc(_: ^context, _: ^style_button, img: image, _: cstring, _: i32, alignment: text_alignment) -> bool ---
+	button_set_behavior        :: proc(^context, button_behavior) ---
+	button_push_behavior       :: proc(^context, button_behavior) -> bool ---
+	button_pop_behavior        :: proc(^context) -> bool ---
 
 	/* =============================================================================
 	*
 	*                                  CHECKBOX
 	*
 	* ============================================================================= */
-	check_label          :: proc(_: ^Context, _: cstring, active: bool) -> bool ---
-	check_text           :: proc(_: ^Context, _: cstring, _: i32, active: bool) -> bool ---
-	check_text_align     :: proc(_: ^Context, _: cstring, _: i32, active: bool, widget_alignment: Widget_Alignment, text_alignment: Text_Alignment) -> bool ---
-	check_flags_label    :: proc(_: ^Context, _: cstring, flags: u32, value: u32) -> u32 ---
-	check_flags_text     :: proc(_: ^Context, _: cstring, _: i32, flags: u32, value: u32) -> u32 ---
-	checkbox_label       :: proc(_: ^Context, _: cstring, active: ^bool) -> bool ---
-	checkbox_label_align :: proc(ctx: ^Context, label: cstring, active: ^bool, widget_alignment: Widget_Alignment, text_alignment: Text_Alignment) -> bool ---
-	checkbox_text        :: proc(_: ^Context, _: cstring, _: i32, active: ^bool) -> bool ---
-	checkbox_text_align  :: proc(ctx: ^Context, text: cstring, len: i32, active: ^bool, widget_alignment: Widget_Alignment, text_alignment: Text_Alignment) -> bool ---
-	checkbox_flags_label :: proc(_: ^Context, _: cstring, flags: ^u32, value: u32) -> bool ---
-	checkbox_flags_text  :: proc(_: ^Context, _: cstring, _: i32, flags: ^u32, value: u32) -> bool ---
+	check_label          :: proc(_: ^context, _: cstring, active: bool) -> bool ---
+	check_text           :: proc(_: ^context, _: cstring, _: i32, active: bool) -> bool ---
+	check_text_align     :: proc(_: ^context, _: cstring, _: i32, active: bool, widget_alignment: widget_alignment, text_alignment: text_alignment) -> bool ---
+	check_flags_label    :: proc(_: ^context, _: cstring, flags: u32, value: u32) -> u32 ---
+	check_flags_text     :: proc(_: ^context, _: cstring, _: i32, flags: u32, value: u32) -> u32 ---
+	checkbox_label       :: proc(_: ^context, _: cstring, active: ^bool) -> bool ---
+	checkbox_label_align :: proc(ctx: ^context, label: cstring, active: ^bool, widget_alignment: widget_alignment, text_alignment: text_alignment) -> bool ---
+	checkbox_text        :: proc(_: ^context, _: cstring, _: i32, active: ^bool) -> bool ---
+	checkbox_text_align  :: proc(ctx: ^context, text: cstring, len: i32, active: ^bool, widget_alignment: widget_alignment, text_alignment: text_alignment) -> bool ---
+	checkbox_flags_label :: proc(_: ^context, _: cstring, flags: ^u32, value: u32) -> bool ---
+	checkbox_flags_text  :: proc(_: ^context, _: cstring, _: i32, flags: ^u32, value: u32) -> bool ---
 
 	/* =============================================================================
 	*
 	*                                  RADIO BUTTON
 	*
 	* ============================================================================= */
-	radio_label        :: proc(_: ^Context, _: cstring, active: ^bool) -> bool ---
-	radio_label_align  :: proc(ctx: ^Context, label: cstring, active: ^bool, widget_alignment: Widget_Alignment, text_alignment: Text_Alignment) -> bool ---
-	radio_text         :: proc(_: ^Context, _: cstring, _: i32, active: ^bool) -> bool ---
-	radio_text_align   :: proc(ctx: ^Context, text: cstring, len: i32, active: ^bool, widget_alignment: Widget_Alignment, text_alignment: Text_Alignment) -> bool ---
-	option_label       :: proc(_: ^Context, _: cstring, active: bool) -> bool ---
-	option_label_align :: proc(ctx: ^Context, label: cstring, active: bool, widget_alignment: Widget_Alignment, text_alignment: Text_Alignment) -> bool ---
-	option_text        :: proc(_: ^Context, _: cstring, _: i32, active: bool) -> bool ---
-	option_text_align  :: proc(ctx: ^Context, text: cstring, len: i32, is_active: bool, widget_alignment: Widget_Alignment, text_alignment: Text_Alignment) -> bool ---
+	radio_label        :: proc(_: ^context, _: cstring, active: ^bool) -> bool ---
+	radio_label_align  :: proc(ctx: ^context, label: cstring, active: ^bool, widget_alignment: widget_alignment, text_alignment: text_alignment) -> bool ---
+	radio_text         :: proc(_: ^context, _: cstring, _: i32, active: ^bool) -> bool ---
+	radio_text_align   :: proc(ctx: ^context, text: cstring, len: i32, active: ^bool, widget_alignment: widget_alignment, text_alignment: text_alignment) -> bool ---
+	option_label       :: proc(_: ^context, _: cstring, active: bool) -> bool ---
+	option_label_align :: proc(ctx: ^context, label: cstring, active: bool, widget_alignment: widget_alignment, text_alignment: text_alignment) -> bool ---
+	option_text        :: proc(_: ^context, _: cstring, _: i32, active: bool) -> bool ---
+	option_text_align  :: proc(ctx: ^context, text: cstring, len: i32, is_active: bool, widget_alignment: widget_alignment, text_alignment: text_alignment) -> bool ---
 
 	/* =============================================================================
 	*
 	*                                  SELECTABLE
 	*
 	* ============================================================================= */
-	selectable_label        :: proc(_: ^Context, _: cstring, align: Text_Alignment, value: ^bool) -> bool ---
-	selectable_text         :: proc(_: ^Context, _: cstring, _: i32, align: Text_Alignment, value: ^bool) -> bool ---
-	selectable_image_label  :: proc(_: ^Context, _: Image, _: cstring, align: Text_Alignment, value: ^bool) -> bool ---
-	selectable_image_text   :: proc(_: ^Context, _: Image, _: cstring, _: i32, align: Text_Alignment, value: ^bool) -> bool ---
-	selectable_symbol_label :: proc(_: ^Context, _: Symbol_Type, _: cstring, align: Text_Alignment, value: ^bool) -> bool ---
-	selectable_symbol_text  :: proc(_: ^Context, _: Symbol_Type, _: cstring, _: i32, align: Text_Alignment, value: ^bool) -> bool ---
-	select_label            :: proc(_: ^Context, _: cstring, align: Text_Alignment, value: bool) -> bool ---
-	select_text             :: proc(_: ^Context, _: cstring, _: i32, align: Text_Alignment, value: bool) -> bool ---
-	select_image_label      :: proc(_: ^Context, _: Image, _: cstring, align: Text_Alignment, value: bool) -> bool ---
-	select_image_text       :: proc(_: ^Context, _: Image, _: cstring, _: i32, align: Text_Alignment, value: bool) -> bool ---
-	select_symbol_label     :: proc(_: ^Context, _: Symbol_Type, _: cstring, align: Text_Alignment, value: bool) -> bool ---
-	select_symbol_text      :: proc(_: ^Context, _: Symbol_Type, _: cstring, _: i32, align: Text_Alignment, value: bool) -> bool ---
+	selectable_label        :: proc(_: ^context, _: cstring, align: text_alignment, value: ^bool) -> bool ---
+	selectable_text         :: proc(_: ^context, _: cstring, _: i32, align: text_alignment, value: ^bool) -> bool ---
+	selectable_image_label  :: proc(_: ^context, _: image, _: cstring, align: text_alignment, value: ^bool) -> bool ---
+	selectable_image_text   :: proc(_: ^context, _: image, _: cstring, _: i32, align: text_alignment, value: ^bool) -> bool ---
+	selectable_symbol_label :: proc(_: ^context, _: symbol_type, _: cstring, align: text_alignment, value: ^bool) -> bool ---
+	selectable_symbol_text  :: proc(_: ^context, _: symbol_type, _: cstring, _: i32, align: text_alignment, value: ^bool) -> bool ---
+	select_label            :: proc(_: ^context, _: cstring, align: text_alignment, value: bool) -> bool ---
+	select_text             :: proc(_: ^context, _: cstring, _: i32, align: text_alignment, value: bool) -> bool ---
+	select_image_label      :: proc(_: ^context, _: image, _: cstring, align: text_alignment, value: bool) -> bool ---
+	select_image_text       :: proc(_: ^context, _: image, _: cstring, _: i32, align: text_alignment, value: bool) -> bool ---
+	select_symbol_label     :: proc(_: ^context, _: symbol_type, _: cstring, align: text_alignment, value: bool) -> bool ---
+	select_symbol_text      :: proc(_: ^context, _: symbol_type, _: cstring, _: i32, align: text_alignment, value: bool) -> bool ---
 
 	/* =============================================================================
 	*
 	*                                  SLIDER
 	*
 	* ============================================================================= */
-	slide_float  :: proc(_: ^Context, min: f32, val: f32, max: f32, step: f32) -> f32 ---
-	slide_int    :: proc(_: ^Context, min: i32, val: i32, max: i32, step: i32) -> i32 ---
-	slider_float :: proc(_: ^Context, min: f32, val: ^f32, max: f32, step: f32) -> bool ---
-	slider_int   :: proc(_: ^Context, min: i32, val: ^i32, max: i32, step: i32) -> bool ---
+	slide_float  :: proc(_: ^context, min: f32, val: f32, max: f32, step: f32) -> f32 ---
+	slide_int    :: proc(_: ^context, min: i32, val: i32, max: i32, step: i32) -> i32 ---
+	slider_float :: proc(_: ^context, min: f32, val: ^f32, max: f32, step: f32) -> bool ---
+	slider_int   :: proc(_: ^context, min: i32, val: ^i32, max: i32, step: i32) -> bool ---
 
 	/* =============================================================================
 	*
 	*                                   KNOB
 	*
 	* ============================================================================= */
-	knob_float :: proc(_: ^Context, min: f32, val: ^f32, max: f32, step: f32, zero_direction: Heading, dead_zone_degrees: f32) -> bool ---
-	knob_int   :: proc(_: ^Context, min: i32, val: ^i32, max: i32, step: i32, zero_direction: Heading, dead_zone_degrees: f32) -> bool ---
+	knob_float :: proc(_: ^context, min: f32, val: ^f32, max: f32, step: f32, zero_direction: heading, dead_zone_degrees: f32) -> bool ---
+	knob_int   :: proc(_: ^context, min: i32, val: ^i32, max: i32, step: i32, zero_direction: heading, dead_zone_degrees: f32) -> bool ---
 
 	/* =============================================================================
 	*
 	*                                  PROGRESSBAR
 	*
 	* ============================================================================= */
-	progress :: proc(_: ^Context, cur: ^uint, max: uint, modifyable: bool) -> bool ---
-	prog     :: proc(_: ^Context, cur: uint, max: uint, modifyable: bool) -> uint ---
+	progress :: proc(_: ^context, cur: ^uint, max: uint, modifyable: bool) -> bool ---
+	prog     :: proc(_: ^context, cur: uint, max: uint, modifyable: bool) -> uint ---
 
 	/* =============================================================================
 	*
 	*                                  COLOR PICKER
 	*
 	* ============================================================================= */
-	color_picker :: proc(^Context, Colorf, Color_Format) -> Colorf ---
-	color_pick   :: proc(^Context, ^Colorf, Color_Format) -> bool ---
+	color_picker :: proc(^context, colorf, color_format) -> colorf ---
+	color_pick   :: proc(^context, ^colorf, color_format) -> bool ---
 
 	/* =============================================================================
 	*
@@ -2742,12 +2721,11 @@ foreign lib {
 	
 	* # # nk_property_int
 	* Integer property directly modifying a passed in value
-	* !!! \warning
-	*     To generate a unique property ID using the same label make sure to insert
+	* \warning To generate a unique property ID using the same label make sure to insert
 	*     a `#` at the beginning. It will not be shown but guarantees correct behavior.
 	*
 	* ```c
-	* void nk_property_int(struct nk_context *ctx, const char *name, int min, int *val, int max, int step, float inc_per_pixel);
+	* nk_bool nk_property_int(struct nk_context *ctx, const char *name, int min, int *val, int max, int step, float inc_per_pixel);
 	* ```
 	*
 	* Parameter           | Description
@@ -2759,18 +2737,19 @@ foreign lib {
 	* \param[in] max             | Maximum value not allowed to be overflown
 	* \param[in] step            | Increment added and subtracted on increment and decrement button
 	* \param[in] inc_per_pixel   | Value per pixel added or subtracted on dragging
+	*
+	* \returns `true(1)` if the value changed
 	*/
-	property_int :: proc(_: ^Context, name: cstring, min: i32, val: ^i32, max: i32, step: i32, inc_per_pixel: f32) ---
+	property_int :: proc(_: ^context, name: cstring, min: i32, val: ^i32, max: i32, step: i32, inc_per_pixel: f32) -> bool ---
 
 	/**
 	* # # nk_property_float
 	* Float property directly modifying a passed in value
-	* !!! \warning
-	*     To generate a unique property ID using the same label make sure to insert
+	* \warning To generate a unique property ID using the same label make sure to insert
 	*     a `#` at the beginning. It will not be shown but guarantees correct behavior.
 	*
 	* ```c
-	* void nk_property_float(struct nk_context *ctx, const char *name, float min, float *val, float max, float step, float inc_per_pixel);
+	* nk_bool nk_property_float(struct nk_context *ctx, const char *name, float min, float *val, float max, float step, float inc_per_pixel);
 	* ```
 	*
 	* Parameter           | Description
@@ -2782,18 +2761,19 @@ foreign lib {
 	* \param[in] max             | Maximum value not allowed to be overflown
 	* \param[in] step            | Increment added and subtracted on increment and decrement button
 	* \param[in] inc_per_pixel   | Value per pixel added or subtracted on dragging
+	*
+	* \returns `true(1)` if the value changed
 	*/
-	property_float :: proc(_: ^Context, name: cstring, min: f32, val: ^f32, max: f32, step: f32, inc_per_pixel: f32) ---
+	property_float :: proc(_: ^context, name: cstring, min: f32, val: ^f32, max: f32, step: f32, inc_per_pixel: f32) -> bool ---
 
 	/**
 	* # # nk_property_double
 	* Double property directly modifying a passed in value
-	* !!! \warning
-	*     To generate a unique property ID using the same label make sure to insert
+	* \warning To generate a unique property ID using the same label make sure to insert
 	*     a `#` at the beginning. It will not be shown but guarantees correct behavior.
 	*
 	* ```c
-	* void nk_property_double(struct nk_context *ctx, const char *name, double min, double *val, double max, double step, double inc_per_pixel);
+	* nk_bool nk_property_double(struct nk_context *ctx, const char *name, double min, double *val, double max, double step, double inc_per_pixel);
 	* ```
 	*
 	* Parameter           | Description
@@ -2805,14 +2785,15 @@ foreign lib {
 	* \param[in] max             | Maximum value not allowed to be overflown
 	* \param[in] step            | Increment added and subtracted on increment and decrement button
 	* \param[in] inc_per_pixel   | Value per pixel added or subtracted on dragging
+	*
+	* \returns `true(1)` if the value changed
 	*/
-	property_double :: proc(_: ^Context, name: cstring, min: f64, val: ^f64, max: f64, step: f64, inc_per_pixel: f32) ---
+	property_double :: proc(_: ^context, name: cstring, min: f64, val: ^f64, max: f64, step: f64, inc_per_pixel: f32) -> bool ---
 
 	/**
 	* # # nk_propertyi
 	* Integer property modifying a passed in value and returning the new value
-	* !!! \warning
-	*     To generate a unique property ID using the same label make sure to insert
+	* \warning To generate a unique property ID using the same label make sure to insert
 	*     a `#` at the beginning. It will not be shown but guarantees correct behavior.
 	*
 	* ```c
@@ -2829,13 +2810,12 @@ foreign lib {
 	*
 	* \returns the new modified integer value
 	*/
-	propertyi :: proc(_: ^Context, name: cstring, min: i32, val: i32, max: i32, step: i32, inc_per_pixel: f32) -> i32 ---
+	propertyi :: proc(_: ^context, name: cstring, min: i32, val: i32, max: i32, step: i32, inc_per_pixel: f32) -> i32 ---
 
 	/**
 	* # # nk_propertyf
 	* Float property modifying a passed in value and returning the new value
-	* !!! \warning
-	*     To generate a unique property ID using the same label make sure to insert
+	* \warning To generate a unique property ID using the same label make sure to insert
 	*     a `#` at the beginning. It will not be shown but guarantees correct behavior.
 	*
 	* ```c
@@ -2852,13 +2832,12 @@ foreign lib {
 	*
 	* \returns the new modified float value
 	*/
-	propertyf :: proc(_: ^Context, name: cstring, min: f32, val: f32, max: f32, step: f32, inc_per_pixel: f32) -> f32 ---
+	propertyf :: proc(_: ^context, name: cstring, min: f32, val: f32, max: f32, step: f32, inc_per_pixel: f32) -> f32 ---
 
 	/**
 	* # # nk_propertyd
 	* Float property modifying a passed in value and returning the new value
-	* !!! \warning
-	*     To generate a unique property ID using the same label make sure to insert
+	* \warning To generate a unique property ID using the same label make sure to insert
 	*     a `#` at the beginning. It will not be shown but guarantees correct behavior.
 	*
 	* ```c
@@ -2875,10 +2854,10 @@ foreign lib {
 	*
 	* \returns the new modified double value
 	*/
-	propertyd :: proc(_: ^Context, name: cstring, min: f64, val: f64, max: f64, step: f64, inc_per_pixel: f32) -> f64 ---
+	propertyd :: proc(_: ^context, name: cstring, min: f64, val: f64, max: f64, step: f64, inc_per_pixel: f32) -> f64 ---
 }
 
-Edit_Flag :: enum i32 {
+edit_flag :: enum u32 {
 	READ_ONLY            = 0,
 	AUTO_SELECT          = 1,
 	SIG_ENTER            = 2,
@@ -2898,134 +2877,139 @@ Edit_Flag :: enum i32 {
 *                                  TEXT EDIT
 *
 * ============================================================================= */
-Edit_Flags :: bit_set[Edit_Flag; i32]
+edit_flags :: bit_set[edit_flag; u32]
 
-Edit_Events :: enum i32 {
+edit_events :: enum u32 {
 	ACTIVE      = 1,  /**!< edit widget is currently being modified */
 	INACTIVE    = 2,  /**!< edit widget is not active and is not being modified */
 	ACTIVATED   = 4,  /**!< edit widget went from state inactive to state active */
 	DEACTIVATED = 8,  /**!< edit widget went from state active to state inactive */
-	COMMITED    = 16, /**!< edit widget has received an enter and lost focus */
+	COMMITTED   = 16, /**!< edit widget has received an enter and lost focus */
 }
 
 @(default_calling_convention="c", link_prefix="nk_")
 foreign lib {
-	edit_string                 :: proc(_: ^Context, _: Edit_Flags, buffer: cstring, len: ^i32, max: i32, _: Plugin_Filter) -> Edit_Flags ---
-	edit_string_zero_terminated :: proc(_: ^Context, _: Edit_Flags, buffer: cstring, max: i32, _: Plugin_Filter) -> Edit_Flags ---
-	edit_buffer                 :: proc(^Context, Edit_Flags, ^Text_Edit, Plugin_Filter) -> Edit_Flags ---
-	edit_focus                  :: proc(_: ^Context, flags: Edit_Flags) ---
-	edit_unfocus                :: proc(^Context) ---
+	edit_string                 :: proc(_: ^context, _: edit_flags, buffer: cstring, len: ^i32, max: i32, _: plugin_filter) -> edit_flags ---
+	edit_string_zero_terminated :: proc(_: ^context, _: edit_flags, buffer: cstring, max: i32, _: plugin_filter) -> edit_flags ---
+	edit_buffer                 :: proc(^context, edit_flags, ^text_edit, plugin_filter) -> edit_flags ---
+	edit_focus                  :: proc(_: ^context, flags: edit_flags) ---
+	edit_unfocus                :: proc(^context) ---
 
 	/* =============================================================================
 	*
 	*                                  CHART
 	*
 	* ============================================================================= */
-	chart_begin            :: proc(_: ^Context, _: Chart_Type, num: i32, min: f32, max: f32) -> bool ---
-	chart_begin_colored    :: proc(_: ^Context, _: Chart_Type, _: Color, active: Color, num: i32, min: f32, max: f32) -> bool ---
-	chart_add_slot         :: proc(ctx: ^Context, _: Chart_Type, count: i32, min_value: f32, max_value: f32) ---
-	chart_add_slot_colored :: proc(ctx: ^Context, _: Chart_Type, _: Color, active: Color, count: i32, min_value: f32, max_value: f32) ---
-	chart_push             :: proc(^Context, f32) -> Chart_Event ---
-	chart_push_slot        :: proc(^Context, f32, i32) -> Chart_Event ---
-	chart_end              :: proc(^Context) ---
-	plot                   :: proc(_: ^Context, _: Chart_Type, values: ^f32, count: i32, offset: i32) ---
-	plot_function          :: proc(_: ^Context, _: Chart_Type, userdata: rawptr, value_getter: proc "c" (user: rawptr, index: i32) -> f32, count: i32, offset: i32) ---
+	chart_begin            :: proc(_: ^context, _: chart_type, num: i32, min: f32, max: f32) -> bool ---
+	chart_begin_colored    :: proc(_: ^context, _: chart_type, _: color, active: color, num: i32, min: f32, max: f32) -> bool ---
+	chart_add_slot         :: proc(ctx: ^context, _: chart_type, count: i32, min_value: f32, max_value: f32) ---
+	chart_add_slot_colored :: proc(ctx: ^context, _: chart_type, _: color, active: color, count: i32, min_value: f32, max_value: f32) ---
+	chart_push             :: proc(^context, f32) -> chart_event ---
+	chart_push_slot        :: proc(^context, f32, i32) -> chart_event ---
+	chart_end              :: proc(^context) ---
+	plot                   :: proc(_: ^context, _: chart_type, values: ^f32, count: i32, offset: i32) ---
+	plot_function          :: proc(_: ^context, _: chart_type, userdata: rawptr, value_getter: proc "c" (user: rawptr, index: i32) -> f32, count: i32, offset: i32) ---
 
 	/* =============================================================================
 	*
 	*                                  POPUP
 	*
 	* ============================================================================= */
-	popup_begin      :: proc(_: ^Context, _: Popup_Type, _: cstring, _: Panel_Flags, bounds: Rect) -> bool ---
-	popup_close      :: proc(^Context) ---
-	popup_end        :: proc(^Context) ---
-	popup_get_scroll :: proc(_: ^Context, offset_x: ^u32, offset_y: ^u32) ---
-	popup_set_scroll :: proc(_: ^Context, offset_x: u32, offset_y: u32) ---
+	popup_begin      :: proc(_: ^context, _: popup_type, _: cstring, _: panel_flags, bounds: rect) -> bool ---
+	popup_close      :: proc(^context) ---
+	popup_end        :: proc(^context) ---
+	popup_get_scroll :: proc(_: ^context, offset_x: ^u32, offset_y: ^u32) ---
+	popup_set_scroll :: proc(_: ^context, offset_x: u32, offset_y: u32) ---
 
 	/* =============================================================================
 	*
 	*                                  COMBOBOX
 	*
 	* ============================================================================= */
-	combo              :: proc(_: ^Context, items: ^cstring, count: i32, selected: i32, item_height: i32, size: Vec2) -> i32 ---
-	combo_separator    :: proc(_: ^Context, items_separated_by_separator: cstring, separator: i32, selected: i32, count: i32, item_height: i32, size: Vec2) -> i32 ---
-	combo_string       :: proc(_: ^Context, items_separated_by_zeros: cstring, selected: i32, count: i32, item_height: i32, size: Vec2) -> i32 ---
-	combo_callback     :: proc(_: ^Context, item_getter: proc "c" (rawptr, i32, ^cstring), userdata: rawptr, selected: i32, count: i32, item_height: i32, size: Vec2) -> i32 ---
-	combobox           :: proc(_: ^Context, items: ^cstring, count: i32, selected: ^i32, item_height: i32, size: Vec2) ---
-	combobox_string    :: proc(_: ^Context, items_separated_by_zeros: cstring, selected: ^i32, count: i32, item_height: i32, size: Vec2) ---
-	combobox_separator :: proc(_: ^Context, items_separated_by_separator: cstring, separator: i32, selected: ^i32, count: i32, item_height: i32, size: Vec2) ---
-	combobox_callback  :: proc(_: ^Context, item_getter: proc "c" (rawptr, i32, ^cstring), _: rawptr, selected: ^i32, count: i32, item_height: i32, size: Vec2) ---
+	combo              :: proc(_: ^context, items: ^cstring, count: i32, selected: i32, item_height: i32, size: vec2) -> i32 ---
+	combo_separator    :: proc(_: ^context, items_separated_by_separator: cstring, separator: i32, selected: i32, count: i32, item_height: i32, size: vec2) -> i32 ---
+	combo_string       :: proc(_: ^context, items_separated_by_zeros: cstring, selected: i32, count: i32, item_height: i32, size: vec2) -> i32 ---
+	combo_callback     :: proc(_: ^context, item_getter: proc "c" (rawptr, i32, ^cstring), userdata: rawptr, selected: i32, count: i32, item_height: i32, size: vec2) -> i32 ---
+	combobox           :: proc(_: ^context, items: ^cstring, count: i32, selected: ^i32, item_height: i32, size: vec2) -> bool ---
+	combobox_string    :: proc(_: ^context, items_separated_by_zeros: cstring, selected: ^i32, count: i32, item_height: i32, size: vec2) -> bool ---
+	combobox_separator :: proc(_: ^context, items_separated_by_separator: cstring, separator: i32, selected: ^i32, count: i32, item_height: i32, size: vec2) -> bool ---
+	combobox_callback  :: proc(_: ^context, item_getter: proc "c" (rawptr, i32, ^cstring), _: rawptr, selected: ^i32, count: i32, item_height: i32, size: vec2) -> bool ---
 
 	/* =============================================================================
 	*
 	*                                  ABSTRACT COMBOBOX
 	*
 	* ============================================================================= */
-	combo_begin_text         :: proc(_: ^Context, selected: cstring, _: i32, size: Vec2) -> bool ---
-	combo_begin_label        :: proc(_: ^Context, selected: cstring, size: Vec2) -> bool ---
-	combo_begin_color        :: proc(_: ^Context, color: Color, size: Vec2) -> bool ---
-	combo_begin_symbol       :: proc(_: ^Context, _: Symbol_Type, size: Vec2) -> bool ---
-	combo_begin_symbol_label :: proc(_: ^Context, selected: cstring, _: Symbol_Type, size: Vec2) -> bool ---
-	combo_begin_symbol_text  :: proc(_: ^Context, selected: cstring, _: i32, _: Symbol_Type, size: Vec2) -> bool ---
-	combo_begin_image        :: proc(_: ^Context, img: Image, size: Vec2) -> bool ---
-	combo_begin_image_label  :: proc(_: ^Context, selected: cstring, _: Image, size: Vec2) -> bool ---
-	combo_begin_image_text   :: proc(_: ^Context, selected: cstring, _: i32, _: Image, size: Vec2) -> bool ---
-	combo_item_label         :: proc(_: ^Context, _: cstring, alignment: Text_Alignment) -> bool ---
-	combo_item_text          :: proc(_: ^Context, _: cstring, _: i32, alignment: Text_Alignment) -> bool ---
-	combo_item_image_label   :: proc(_: ^Context, _: Image, _: cstring, alignment: Text_Alignment) -> bool ---
-	combo_item_image_text    :: proc(_: ^Context, _: Image, _: cstring, _: i32, alignment: Text_Alignment) -> bool ---
-	combo_item_symbol_label  :: proc(_: ^Context, _: Symbol_Type, _: cstring, alignment: Text_Alignment) -> bool ---
-	combo_item_symbol_text   :: proc(_: ^Context, _: Symbol_Type, _: cstring, _: i32, alignment: Text_Alignment) -> bool ---
-	combo_close              :: proc(^Context) ---
-	combo_end                :: proc(^Context) ---
+	combo_begin_text         :: proc(_: ^context, selected: cstring, _: i32, size: vec2) -> bool ---
+	combo_begin_label        :: proc(_: ^context, selected: cstring, size: vec2) -> bool ---
+	combo_begin_color        :: proc(_: ^context, color: color, size: vec2) -> bool ---
+	combo_begin_symbol       :: proc(_: ^context, _: symbol_type, size: vec2) -> bool ---
+	combo_begin_symbol_label :: proc(_: ^context, selected: cstring, _: symbol_type, size: vec2) -> bool ---
+	combo_begin_symbol_text  :: proc(_: ^context, selected: cstring, _: i32, _: symbol_type, size: vec2) -> bool ---
+	combo_begin_image        :: proc(_: ^context, img: image, size: vec2) -> bool ---
+	combo_begin_image_label  :: proc(_: ^context, selected: cstring, _: image, size: vec2) -> bool ---
+	combo_begin_image_text   :: proc(_: ^context, selected: cstring, _: i32, _: image, size: vec2) -> bool ---
+	combo_item_label         :: proc(_: ^context, _: cstring, alignment: text_alignment) -> bool ---
+	combo_item_text          :: proc(_: ^context, _: cstring, _: i32, alignment: text_alignment) -> bool ---
+	combo_item_image_label   :: proc(_: ^context, _: image, _: cstring, alignment: text_alignment) -> bool ---
+	combo_item_image_text    :: proc(_: ^context, _: image, _: cstring, _: i32, alignment: text_alignment) -> bool ---
+	combo_item_symbol_label  :: proc(_: ^context, _: symbol_type, _: cstring, alignment: text_alignment) -> bool ---
+	combo_item_symbol_text   :: proc(_: ^context, _: symbol_type, _: cstring, _: i32, alignment: text_alignment) -> bool ---
+	combo_close              :: proc(^context) ---
+	combo_end                :: proc(^context) ---
 
 	/* =============================================================================
 	*
 	*                                  CONTEXTUAL
 	*
 	* ============================================================================= */
-	contextual_begin             :: proc(_: ^Context, _: Panel_Flags, _: Vec2, trigger_bounds: Rect) -> bool ---
-	contextual_item_text         :: proc(_: ^Context, _: cstring, _: i32, align: Text_Alignment) -> bool ---
-	contextual_item_label        :: proc(_: ^Context, _: cstring, align: Text_Alignment) -> bool ---
-	contextual_item_image_label  :: proc(_: ^Context, _: Image, _: cstring, alignment: Text_Alignment) -> bool ---
-	contextual_item_image_text   :: proc(_: ^Context, _: Image, _: cstring, len: i32, alignment: Text_Alignment) -> bool ---
-	contextual_item_symbol_label :: proc(_: ^Context, _: Symbol_Type, _: cstring, alignment: Text_Alignment) -> bool ---
-	contextual_item_symbol_text  :: proc(_: ^Context, _: Symbol_Type, _: cstring, _: i32, alignment: Text_Alignment) -> bool ---
-	contextual_close             :: proc(^Context) ---
-	contextual_end               :: proc(^Context) ---
+	contextual_begin             :: proc(_: ^context, _: panel_flags, _: vec2, trigger_bounds: rect) -> bool ---
+	contextual_item_text         :: proc(_: ^context, _: cstring, _: i32, align: text_alignment) -> bool ---
+	contextual_item_label        :: proc(_: ^context, _: cstring, align: text_alignment) -> bool ---
+	contextual_item_image_label  :: proc(_: ^context, _: image, _: cstring, alignment: text_alignment) -> bool ---
+	contextual_item_image_text   :: proc(_: ^context, _: image, _: cstring, len: i32, alignment: text_alignment) -> bool ---
+	contextual_item_symbol_label :: proc(_: ^context, _: symbol_type, _: cstring, alignment: text_alignment) -> bool ---
+	contextual_item_symbol_text  :: proc(_: ^context, _: symbol_type, _: cstring, _: i32, alignment: text_alignment) -> bool ---
+	contextual_close             :: proc(^context) ---
+	contextual_end               :: proc(^context) ---
 
 	/* =============================================================================
 	*
 	*                                  TOOLTIP
 	*
 	* ============================================================================= */
-	tooltip       :: proc(^Context, cstring) ---
-	tooltip_begin :: proc(_: ^Context, width: f32) -> bool ---
-	tooltip_end   :: proc(^Context) ---
+	tooltip                  :: proc(^context, cstring) ---
+	tooltip_offset           :: proc(ctx: ^context, text: cstring, position: tooltip_pos, offset: vec2) ---
+	do_tooltip               :: proc(^context, cstring, rect) ---
+	do_tooltip_delay         :: proc(^context, cstring, rect, ^f32) ---
+	do_tooltip_delay_clicked :: proc(_: ^context, _: cstring, _: rect, timer: ^f32, _: ^bool) ---
+	tooltip_begin            :: proc(_: ^context, width: f32) -> bool ---
+	tooltip_begin_offset     :: proc(^context, f32, tooltip_pos, vec2) -> bool ---
+	tooltip_end              :: proc(^context) ---
 
 	/* =============================================================================
 	*
 	*                                  MENU
 	*
 	* ============================================================================= */
-	menubar_begin           :: proc(^Context) ---
-	menubar_end             :: proc(^Context) ---
-	menu_begin_text         :: proc(_: ^Context, title: cstring, title_len: i32, align: Text_Alignment, size: Vec2) -> bool ---
-	menu_begin_label        :: proc(_: ^Context, _: cstring, align: Text_Alignment, size: Vec2) -> bool ---
-	menu_begin_image        :: proc(_: ^Context, _: cstring, _: Image, size: Vec2) -> bool ---
-	menu_begin_image_text   :: proc(_: ^Context, _: cstring, _: i32, align: Text_Alignment, _: Image, size: Vec2) -> bool ---
-	menu_begin_image_label  :: proc(_: ^Context, _: cstring, align: Text_Alignment, _: Image, size: Vec2) -> bool ---
-	menu_begin_symbol       :: proc(_: ^Context, _: cstring, _: Symbol_Type, size: Vec2) -> bool ---
-	menu_begin_symbol_text  :: proc(_: ^Context, _: cstring, _: i32, align: Text_Alignment, _: Symbol_Type, size: Vec2) -> bool ---
-	menu_begin_symbol_label :: proc(_: ^Context, _: cstring, align: Text_Alignment, _: Symbol_Type, size: Vec2) -> bool ---
-	menu_item_text          :: proc(_: ^Context, _: cstring, _: i32, align: Text_Alignment) -> bool ---
-	menu_item_label         :: proc(_: ^Context, _: cstring, alignment: Text_Alignment) -> bool ---
-	menu_item_image_label   :: proc(_: ^Context, _: Image, _: cstring, alignment: Text_Alignment) -> bool ---
-	menu_item_image_text    :: proc(_: ^Context, _: Image, _: cstring, len: i32, alignment: Text_Alignment) -> bool ---
-	menu_item_symbol_text   :: proc(_: ^Context, _: Symbol_Type, _: cstring, _: i32, alignment: Text_Alignment) -> bool ---
-	menu_item_symbol_label  :: proc(_: ^Context, _: Symbol_Type, _: cstring, alignment: Text_Alignment) -> bool ---
-	menu_close              :: proc(^Context) ---
-	menu_end                :: proc(^Context) ---
+	menubar_begin           :: proc(^context) ---
+	menubar_end             :: proc(^context) ---
+	menu_begin_text         :: proc(_: ^context, title: cstring, title_len: i32, align: text_alignment, size: vec2) -> bool ---
+	menu_begin_label        :: proc(_: ^context, _: cstring, align: text_alignment, size: vec2) -> bool ---
+	menu_begin_image        :: proc(_: ^context, _: cstring, _: image, size: vec2) -> bool ---
+	menu_begin_image_text   :: proc(_: ^context, _: cstring, _: i32, align: text_alignment, _: image, size: vec2) -> bool ---
+	menu_begin_image_label  :: proc(_: ^context, _: cstring, align: text_alignment, _: image, size: vec2) -> bool ---
+	menu_begin_symbol       :: proc(_: ^context, _: cstring, _: symbol_type, size: vec2) -> bool ---
+	menu_begin_symbol_text  :: proc(_: ^context, _: cstring, _: i32, align: text_alignment, _: symbol_type, size: vec2) -> bool ---
+	menu_begin_symbol_label :: proc(_: ^context, _: cstring, align: text_alignment, _: symbol_type, size: vec2) -> bool ---
+	menu_item_text          :: proc(_: ^context, _: cstring, _: i32, align: text_alignment) -> bool ---
+	menu_item_label         :: proc(_: ^context, _: cstring, alignment: text_alignment) -> bool ---
+	menu_item_image_label   :: proc(_: ^context, _: image, _: cstring, alignment: text_alignment) -> bool ---
+	menu_item_image_text    :: proc(_: ^context, _: image, _: cstring, len: i32, alignment: text_alignment) -> bool ---
+	menu_item_symbol_text   :: proc(_: ^context, _: symbol_type, _: cstring, _: i32, alignment: text_alignment) -> bool ---
+	menu_item_symbol_label  :: proc(_: ^context, _: symbol_type, _: cstring, alignment: text_alignment) -> bool ---
+	menu_close              :: proc(^context) ---
+	menu_end                :: proc(^context) ---
 }
 
 /* =============================================================================
@@ -3035,7 +3019,7 @@ foreign lib {
 * ============================================================================= */
 WIDGET_DISABLED_FACTOR :: 0.5
 
-Style_Colors :: enum i32 {
+style_colors :: enum u32 {
 	TEXT                    = 0,
 	WINDOW                  = 1,
 	HEADER                  = 2,
@@ -3070,7 +3054,7 @@ Style_Colors :: enum i32 {
 	KNOB_CURSOR_ACTIVE      = 31,
 }
 
-Style_Cursor :: enum i32 {
+style_cursor :: enum u32 {
 	ARROW                      = 0,
 	TEXT                       = 1,
 	MOVE                       = 2,
@@ -3082,113 +3066,113 @@ Style_Cursor :: enum i32 {
 
 @(default_calling_convention="c", link_prefix="nk_")
 foreign lib {
-	style_default           :: proc(^Context) ---
-	style_from_table        :: proc(^Context, ^Color) ---
-	style_load_cursor       :: proc(^Context, Style_Cursor, ^Cursor) ---
-	style_load_all_cursors  :: proc(^Context, ^Cursor) ---
-	style_get_color_by_name :: proc(Style_Colors) -> cstring ---
-	style_set_font          :: proc(^Context, ^User_Font) ---
-	style_set_cursor        :: proc(^Context, Style_Cursor) -> bool ---
-	style_show_cursor       :: proc(^Context) ---
-	style_hide_cursor       :: proc(^Context) ---
-	style_push_font         :: proc(^Context, ^User_Font) -> bool ---
-	style_push_float        :: proc(^Context, ^f32, f32) -> bool ---
-	style_push_vec2         :: proc(^Context, ^Vec2, Vec2) -> bool ---
-	style_push_style_item   :: proc(^Context, ^Style_Item, Style_Item) -> bool ---
-	style_push_flags        :: proc(^Context, ^Flags, Flags) -> bool ---
-	style_push_color        :: proc(^Context, ^Color, Color) -> bool ---
-	style_pop_font          :: proc(^Context) -> bool ---
-	style_pop_float         :: proc(^Context) -> bool ---
-	style_pop_vec2          :: proc(^Context) -> bool ---
-	style_pop_style_item    :: proc(^Context) -> bool ---
-	style_pop_flags         :: proc(^Context) -> bool ---
-	style_pop_color         :: proc(^Context) -> bool ---
+	style_default           :: proc(^context) ---
+	style_from_table        :: proc(^context, ^color) ---
+	style_load_cursor       :: proc(^context, style_cursor, ^cursor) ---
+	style_load_all_cursors  :: proc(^context, ^cursor) ---
+	style_get_color_by_name :: proc(style_colors) -> cstring ---
+	style_set_font          :: proc(^context, ^user_font) ---
+	style_set_cursor        :: proc(^context, style_cursor) -> bool ---
+	style_show_cursor       :: proc(^context) ---
+	style_hide_cursor       :: proc(^context) ---
+	style_push_font         :: proc(^context, ^user_font) -> bool ---
+	style_push_float        :: proc(^context, ^f32, f32) -> bool ---
+	style_push_vec2         :: proc(^context, ^vec2, vec2) -> bool ---
+	style_push_style_item   :: proc(^context, ^style_item, style_item) -> bool ---
+	style_push_flags        :: proc(^context, ^Flags, Flags) -> bool ---
+	style_push_color        :: proc(^context, ^color, color) -> bool ---
+	style_pop_font          :: proc(^context) -> bool ---
+	style_pop_float         :: proc(^context) -> bool ---
+	style_pop_vec2          :: proc(^context) -> bool ---
+	style_pop_style_item    :: proc(^context) -> bool ---
+	style_pop_flags         :: proc(^context) -> bool ---
+	style_pop_color         :: proc(^context) -> bool ---
 
 	/* =============================================================================
 	*
 	*                                  COLOR
 	*
 	* ============================================================================= */
-	rgb            :: proc(r: i32, g: i32, b: i32) -> Color ---
-	rgb_iv         :: proc(rgb: ^i32) -> Color ---
-	rgb_bv         :: proc(rgb: ^byte) -> Color ---
-	rgb_f          :: proc(r: f32, g: f32, b: f32) -> Color ---
-	rgb_fv         :: proc(rgb: ^f32) -> Color ---
-	rgb_cf         :: proc(_c: Colorf) -> Color ---
-	rgb_hex        :: proc(rgb: cstring) -> Color ---
-	rgb_factor     :: proc(col: Color, factor: f32) -> Color ---
-	rgba           :: proc(r: i32, g: i32, b: i32, a: i32) -> Color ---
-	rgba_u32       :: proc(u32) -> Color ---
-	rgba_iv        :: proc(rgba: ^i32) -> Color ---
-	rgba_bv        :: proc(rgba: ^byte) -> Color ---
-	rgba_f         :: proc(r: f32, g: f32, b: f32, a: f32) -> Color ---
-	rgba_fv        :: proc(rgba: ^f32) -> Color ---
-	rgba_cf        :: proc(_c: Colorf) -> Color ---
-	rgba_hex       :: proc(rgb: cstring) -> Color ---
-	hsva_colorf    :: proc(h: f32, s: f32, v: f32, a: f32) -> Colorf ---
-	hsva_colorfv   :: proc(_c: ^f32) -> Colorf ---
-	colorf_hsva_f  :: proc(out_h: ^f32, out_s: ^f32, out_v: ^f32, out_a: ^f32, _in: Colorf) ---
-	colorf_hsva_fv :: proc(hsva: ^f32, _in: Colorf) ---
-	hsv            :: proc(h: i32, s: i32, v: i32) -> Color ---
-	hsv_iv         :: proc(hsv: ^i32) -> Color ---
-	hsv_bv         :: proc(hsv: ^byte) -> Color ---
-	hsv_f          :: proc(h: f32, s: f32, v: f32) -> Color ---
-	hsv_fv         :: proc(hsv: ^f32) -> Color ---
-	hsva           :: proc(h: i32, s: i32, v: i32, a: i32) -> Color ---
-	hsva_iv        :: proc(hsva: ^i32) -> Color ---
-	hsva_bv        :: proc(hsva: ^byte) -> Color ---
-	hsva_f         :: proc(h: f32, s: f32, v: f32, a: f32) -> Color ---
-	hsva_fv        :: proc(hsva: ^f32) -> Color ---
+	rgb            :: proc(r: i32, g: i32, b: i32) -> color ---
+	rgb_iv         :: proc(rgb: ^i32) -> color ---
+	rgb_bv         :: proc(rgb: ^byte) -> color ---
+	rgb_f          :: proc(r: f32, g: f32, b: f32) -> color ---
+	rgb_fv         :: proc(rgb: ^f32) -> color ---
+	rgb_cf         :: proc(_c: colorf) -> color ---
+	rgb_hex        :: proc(rgb: cstring) -> color ---
+	rgb_factor     :: proc(col: color, factor: f32) -> color ---
+	rgba           :: proc(r: i32, g: i32, b: i32, a: i32) -> color ---
+	rgba_u32       :: proc(u32) -> color ---
+	rgba_iv        :: proc(rgba: ^i32) -> color ---
+	rgba_bv        :: proc(rgba: ^byte) -> color ---
+	rgba_f         :: proc(r: f32, g: f32, b: f32, a: f32) -> color ---
+	rgba_fv        :: proc(rgba: ^f32) -> color ---
+	rgba_cf        :: proc(_c: colorf) -> color ---
+	rgba_hex       :: proc(rgb: cstring) -> color ---
+	hsva_colorf    :: proc(h: f32, s: f32, v: f32, a: f32) -> colorf ---
+	hsva_colorfv   :: proc(_c: ^f32) -> colorf ---
+	colorf_hsva_f  :: proc(out_h: ^f32, out_s: ^f32, out_v: ^f32, out_a: ^f32, _in: colorf) ---
+	colorf_hsva_fv :: proc(hsva: ^f32, _in: colorf) ---
+	hsv            :: proc(h: i32, s: i32, v: i32) -> color ---
+	hsv_iv         :: proc(hsv: ^i32) -> color ---
+	hsv_bv         :: proc(hsv: ^byte) -> color ---
+	hsv_f          :: proc(h: f32, s: f32, v: f32) -> color ---
+	hsv_fv         :: proc(hsv: ^f32) -> color ---
+	hsva           :: proc(h: i32, s: i32, v: i32, a: i32) -> color ---
+	hsva_iv        :: proc(hsva: ^i32) -> color ---
+	hsva_bv        :: proc(hsva: ^byte) -> color ---
+	hsva_f         :: proc(h: f32, s: f32, v: f32, a: f32) -> color ---
+	hsva_fv        :: proc(hsva: ^f32) -> color ---
 
 	/* color (conversion nuklear --> user) */
-	color_f        :: proc(r: ^f32, g: ^f32, b: ^f32, a: ^f32, _: Color) ---
-	color_fv       :: proc(rgba_out: ^f32, _: Color) ---
-	color_cf       :: proc(Color) -> Colorf ---
-	color_d        :: proc(r: ^f64, g: ^f64, b: ^f64, a: ^f64, _: Color) ---
-	color_dv       :: proc(rgba_out: ^f64, _: Color) ---
-	color_u32      :: proc(Color) -> u32 ---
-	color_hex_rgba :: proc(output: cstring, _: Color) ---
-	color_hex_rgb  :: proc(output: cstring, _: Color) ---
-	color_hsv_i    :: proc(out_h: ^i32, out_s: ^i32, out_v: ^i32, _: Color) ---
-	color_hsv_b    :: proc(out_h: ^byte, out_s: ^byte, out_v: ^byte, _: Color) ---
-	color_hsv_iv   :: proc(hsv_out: ^i32, _: Color) ---
-	color_hsv_bv   :: proc(hsv_out: ^byte, _: Color) ---
-	color_hsv_f    :: proc(out_h: ^f32, out_s: ^f32, out_v: ^f32, _: Color) ---
-	color_hsv_fv   :: proc(hsv_out: ^f32, _: Color) ---
-	color_hsva_i   :: proc(h: ^i32, s: ^i32, v: ^i32, a: ^i32, _: Color) ---
-	color_hsva_b   :: proc(h: ^byte, s: ^byte, v: ^byte, a: ^byte, _: Color) ---
-	color_hsva_iv  :: proc(hsva_out: ^i32, _: Color) ---
-	color_hsva_bv  :: proc(hsva_out: ^byte, _: Color) ---
-	color_hsva_f   :: proc(out_h: ^f32, out_s: ^f32, out_v: ^f32, out_a: ^f32, _: Color) ---
-	color_hsva_fv  :: proc(hsva_out: ^f32, _: Color) ---
+	color_f        :: proc(r: ^f32, g: ^f32, b: ^f32, a: ^f32, _: color) ---
+	color_fv       :: proc(rgba_out: ^f32, _: color) ---
+	color_cf       :: proc(color) -> colorf ---
+	color_d        :: proc(r: ^f64, g: ^f64, b: ^f64, a: ^f64, _: color) ---
+	color_dv       :: proc(rgba_out: ^f64, _: color) ---
+	color_u32      :: proc(color) -> u32 ---
+	color_hex_rgba :: proc(output: cstring, _: color) ---
+	color_hex_rgb  :: proc(output: cstring, _: color) ---
+	color_hsv_i    :: proc(out_h: ^i32, out_s: ^i32, out_v: ^i32, _: color) ---
+	color_hsv_b    :: proc(out_h: ^byte, out_s: ^byte, out_v: ^byte, _: color) ---
+	color_hsv_iv   :: proc(hsv_out: ^i32, _: color) ---
+	color_hsv_bv   :: proc(hsv_out: ^byte, _: color) ---
+	color_hsv_f    :: proc(out_h: ^f32, out_s: ^f32, out_v: ^f32, _: color) ---
+	color_hsv_fv   :: proc(hsv_out: ^f32, _: color) ---
+	color_hsva_i   :: proc(h: ^i32, s: ^i32, v: ^i32, a: ^i32, _: color) ---
+	color_hsva_b   :: proc(h: ^byte, s: ^byte, v: ^byte, a: ^byte, _: color) ---
+	color_hsva_iv  :: proc(hsva_out: ^i32, _: color) ---
+	color_hsva_bv  :: proc(hsva_out: ^byte, _: color) ---
+	color_hsva_f   :: proc(out_h: ^f32, out_s: ^f32, out_v: ^f32, out_a: ^f32, _: color) ---
+	color_hsva_fv  :: proc(hsva_out: ^f32, _: color) ---
 
 	/* =============================================================================
 	*
 	*                                  IMAGE
 	*
 	* ============================================================================= */
-	handle_ptr        :: proc(rawptr) -> Handle ---
-	handle_id         :: proc(i32) -> Handle ---
-	image_handle      :: proc(Handle) -> Image ---
-	image_ptr         :: proc(rawptr) -> Image ---
-	image_id          :: proc(i32) -> Image ---
-	image_is_subimage :: proc(img: ^Image) -> bool ---
-	subimage_ptr      :: proc(_: rawptr, w: u16, h: u16, sub_region: Rect) -> Image ---
-	subimage_id       :: proc(_: i32, w: u16, h: u16, sub_region: Rect) -> Image ---
-	subimage_handle   :: proc(_: Handle, w: u16, h: u16, sub_region: Rect) -> Image ---
+	handle_ptr        :: proc(rawptr) -> handle ---
+	handle_id         :: proc(i32) -> handle ---
+	image_handle      :: proc(handle) -> image ---
+	image_ptr         :: proc(rawptr) -> image ---
+	image_id          :: proc(i32) -> image ---
+	image_is_subimage :: proc(img: ^image) -> bool ---
+	subimage_ptr      :: proc(_: rawptr, w: u16, h: u16, sub_region: rect) -> image ---
+	subimage_id       :: proc(_: i32, w: u16, h: u16, sub_region: rect) -> image ---
+	subimage_handle   :: proc(_: handle, w: u16, h: u16, sub_region: rect) -> image ---
 
 	/* =============================================================================
 	*
 	*                                  9-SLICE
 	*
 	* ============================================================================= */
-	nine_slice_handle       :: proc(_: Handle, l: u16, t: u16, r: u16, b: u16) -> Nine_Slice ---
-	nine_slice_ptr          :: proc(_: rawptr, l: u16, t: u16, r: u16, b: u16) -> Nine_Slice ---
-	nine_slice_id           :: proc(_: i32, l: u16, t: u16, r: u16, b: u16) -> Nine_Slice ---
-	nine_slice_is_sub9slice :: proc(img: ^Nine_Slice) -> i32 ---
-	sub9slice_ptr           :: proc(_: rawptr, w: u16, h: u16, sub_region: Rect, l: u16, t: u16, r: u16, b: u16) -> Nine_Slice ---
-	sub9slice_id            :: proc(_: i32, w: u16, h: u16, sub_region: Rect, l: u16, t: u16, r: u16, b: u16) -> Nine_Slice ---
-	sub9slice_handle        :: proc(_: Handle, w: u16, h: u16, sub_region: Rect, l: u16, t: u16, r: u16, b: u16) -> Nine_Slice ---
+	nine_slice_handle       :: proc(_: handle, l: u16, t: u16, r: u16, b: u16) -> nine_slice ---
+	nine_slice_ptr          :: proc(_: rawptr, l: u16, t: u16, r: u16, b: u16) -> nine_slice ---
+	nine_slice_id           :: proc(_: i32, l: u16, t: u16, r: u16, b: u16) -> nine_slice ---
+	nine_slice_is_sub9slice :: proc(img: ^nine_slice) -> i32 ---
+	sub9slice_ptr           :: proc(_: rawptr, w: u16, h: u16, sub_region: rect, l: u16, t: u16, r: u16, b: u16) -> nine_slice ---
+	sub9slice_id            :: proc(_: i32, w: u16, h: u16, sub_region: rect, l: u16, t: u16, r: u16, b: u16) -> nine_slice ---
+	sub9slice_handle        :: proc(_: handle, w: u16, h: u16, sub_region: rect, l: u16, t: u16, r: u16, b: u16) -> nine_slice ---
 
 	/* =============================================================================
 	*
@@ -3196,15 +3180,15 @@ foreign lib {
 	*
 	* ============================================================================= */
 	murmur_hash             :: proc(key: rawptr, len: i32, seed: Hash) -> Hash ---
-	triangle_from_direction :: proc(result: ^Vec2, r: Rect, pad_x: f32, pad_y: f32, _: Heading) ---
-	vec2v                   :: proc(xy: ^f32) -> Vec2 ---
-	vec2iv                  :: proc(xy: ^i32) -> Vec2 ---
-	get_null_rect           :: proc() -> Rect ---
-	recta                   :: proc(pos: Vec2, size: Vec2) -> Rect ---
-	rectv                   :: proc(xywh: ^f32) -> Rect ---
-	rectiv                  :: proc(xywh: ^i32) -> Rect ---
-	rect_pos                :: proc(Rect) -> Vec2 ---
-	rect_size               :: proc(Rect) -> Vec2 ---
+	triangle_from_direction :: proc(result: ^vec2, r: rect, pad_x: f32, pad_y: f32, _: heading) ---
+	vec2v                   :: proc(xy: ^f32) -> vec2 ---
+	vec2iv                  :: proc(xy: ^i32) -> vec2 ---
+	get_null_rect           :: proc() -> rect ---
+	recta                   :: proc(pos: vec2, size: vec2) -> rect ---
+	rectv                   :: proc(xywh: ^f32) -> rect ---
+	rectiv                  :: proc(xywh: ^i32) -> rect ---
+	rect_pos                :: proc(rect) -> vec2 ---
+	rect_size               :: proc(rect) -> vec2 ---
 
 	/* =============================================================================
 	*
@@ -3388,15 +3372,10 @@ foreign lib {
 *     nk_font *font = nk_font_atlas_add_from_file(&atlas, "Path/To/Your/TTF_Font.ttf", 13, &cfg);
 * ```
 */
-User_Font_Glyph    :: struct {}
-Text_Width_F       :: proc "c" (_: Handle, h: f32, _: cstring, len: i32) -> f32
-Query_Font_Glyph_F :: proc "c" (handle: Handle, font_height: f32, glyph: ^User_Font_Glyph, codepoint: rune, next_codepoint: rune)
-
-User_Font :: struct {
-	userdata: Handle,       /**!< user provided font handle */
-	height:   f32,          /**!< max height of the font */
-	width:    Text_Width_F, /**!< font string width in pixel callback */
-}
+user_font_glyph    :: struct {}
+text_width_f       :: proc "c" (_: handle, h: f32, _: cstring, len: i32) -> f32
+query_font_glyph_f :: proc "c" (handle: handle, font_height: f32, glyph: ^user_font_glyph, codepoint: rune, next_codepoint: rune)
+user_font          :: struct {}
 
 /* ==============================================================
 *
@@ -3433,7 +3412,7 @@ User_Font :: struct {
 * allocation functions malloc and free and takes over complete control over
 * memory in this library.
 */
-Memory_Status :: struct {
+memory_status :: struct {
 	memory:    rawptr,
 	type:      u32,
 	size:      uint,
@@ -3442,22 +3421,22 @@ Memory_Status :: struct {
 	calls:     uint,
 }
 
-Allocation_Type :: enum i32 {
+allocation_type :: enum u32 {
 	FIXED   = 0,
 	DYNAMIC = 1,
 }
 
-Buffer_Allocation_Type :: enum i32 {
+buffer_allocation_type :: enum u32 {
 	FRONT = 0,
 	BACK  = 1,
 }
 
-Buffer_Marker :: struct {
+buffer_marker :: struct {
 	active: bool,
 	offset: uint,
 }
 
-Memory :: struct {
+memory :: struct {
 	ptr:  rawptr,
 	size: uint,
 }
@@ -3467,31 +3446,21 @@ Memory :: struct {
 *                                  API
 *
 * =========================================================================== */
-Buffer :: struct {
-	marker:      [2]Buffer_Marker, /**!< buffer marker to free a buffer to a certain offset */
-	pool:        Allocator,        /**!< allocator callback for dynamic buffers */
-	type:        Allocation_Type,  /**!< memory management type */
-	memory:      Memory,           /**!< memory and size of the current memory block */
-	grow_factor: f32,              /**!< growing factor for dynamic memory management */
-	allocated:   uint,             /**!< total amount of memory allocated */
-	needed:      uint,             /**!< totally consumed memory given that enough memory is present */
-	calls:       uint,             /**!< number of allocation calls */
-	size:        uint,             /**!< current size of the buffer */
-}
+buffer :: struct {}
 
 @(default_calling_convention="c", link_prefix="nk_")
 foreign lib {
-	buffer_init         :: proc(_: ^Buffer, _: ^Allocator, size: uint) ---
-	buffer_init_fixed   :: proc(_: ^Buffer, memory: rawptr, size: uint) ---
-	buffer_info         :: proc(^Memory_Status, ^Buffer) ---
-	buffer_push         :: proc(_: ^Buffer, type: Buffer_Allocation_Type, memory: rawptr, size: uint, align: uint) ---
-	buffer_mark         :: proc(_: ^Buffer, type: Buffer_Allocation_Type) ---
-	buffer_reset        :: proc(_: ^Buffer, type: Buffer_Allocation_Type) ---
-	buffer_clear        :: proc(^Buffer) ---
-	buffer_free         :: proc(^Buffer) ---
-	buffer_memory       :: proc(^Buffer) -> rawptr ---
-	buffer_memory_const :: proc(^Buffer) -> rawptr ---
-	buffer_total        :: proc(^Buffer) -> uint ---
+	buffer_init         :: proc(_: ^buffer, _: ^allocator, size: uint) ---
+	buffer_init_fixed   :: proc(_: ^buffer, memory: rawptr, size: uint) ---
+	buffer_info         :: proc(^memory_status, ^buffer) ---
+	buffer_push         :: proc(_: ^buffer, type: buffer_allocation_type, memory: rawptr, size: uint, align: uint) ---
+	buffer_mark         :: proc(_: ^buffer, type: buffer_allocation_type) ---
+	buffer_reset        :: proc(_: ^buffer, type: buffer_allocation_type) ---
+	buffer_clear        :: proc(^buffer) ---
+	buffer_free         :: proc(^buffer) ---
+	buffer_memory       :: proc(^buffer) -> rawptr ---
+	buffer_memory_const :: proc(^buffer) -> rawptr ---
+	buffer_total        :: proc(^buffer) -> uint ---
 }
 
 /* ==============================================================
@@ -3504,64 +3473,64 @@ foreign lib {
 *  the default string handling method. The only instance you should have any contact
 *  with this API is if you interact with an `nk_text_edit` object inside one of the
 *  copy and paste functions and even there only for more advanced cases. */
-Str :: struct {
-	buffer: Buffer,
+str :: struct {
+	buffer: buffer,
 	len:    i32, /**!< in codepoints/runes/glyphs */
 }
 
 @(default_calling_convention="c", link_prefix="nk_")
 foreign lib {
-	str_init              :: proc(_: ^Str, _: ^Allocator, size: uint) ---
-	str_init_fixed        :: proc(_: ^Str, memory: rawptr, size: uint) ---
-	str_clear             :: proc(^Str) ---
-	str_free              :: proc(^Str) ---
-	str_append_text_char  :: proc(^Str, cstring, i32) -> i32 ---
-	str_append_str_char   :: proc(^Str, cstring) -> i32 ---
-	str_append_text_utf8  :: proc(^Str, cstring, i32) -> i32 ---
-	str_append_str_utf8   :: proc(^Str, cstring) -> i32 ---
-	str_append_text_runes :: proc(^Str, ^rune, i32) -> i32 ---
-	str_append_str_runes  :: proc(^Str, ^rune) -> i32 ---
-	str_insert_at_char    :: proc(_: ^Str, pos: i32, _: cstring, _: i32) -> i32 ---
-	str_insert_at_rune    :: proc(_: ^Str, pos: i32, _: cstring, _: i32) -> i32 ---
-	str_insert_text_char  :: proc(_: ^Str, pos: i32, _: cstring, _: i32) -> i32 ---
-	str_insert_str_char   :: proc(_: ^Str, pos: i32, _: cstring) -> i32 ---
-	str_insert_text_utf8  :: proc(_: ^Str, pos: i32, _: cstring, _: i32) -> i32 ---
-	str_insert_str_utf8   :: proc(_: ^Str, pos: i32, _: cstring) -> i32 ---
-	str_insert_text_runes :: proc(_: ^Str, pos: i32, _: ^rune, _: i32) -> i32 ---
-	str_insert_str_runes  :: proc(_: ^Str, pos: i32, _: ^rune) -> i32 ---
-	str_remove_chars      :: proc(_: ^Str, len: i32) ---
-	str_remove_runes      :: proc(str: ^Str, len: i32) ---
-	str_delete_chars      :: proc(_: ^Str, pos: i32, len: i32) ---
-	str_delete_runes      :: proc(_: ^Str, pos: i32, len: i32) ---
-	str_at_char           :: proc(_: ^Str, pos: i32) -> cstring ---
-	str_at_rune           :: proc(_: ^Str, pos: i32, unicode: ^rune, len: ^i32) -> cstring ---
-	str_rune_at           :: proc(_: ^Str, pos: i32) -> rune ---
-	str_at_char_const     :: proc(_: ^Str, pos: i32) -> cstring ---
-	str_at_const          :: proc(_: ^Str, pos: i32, unicode: ^rune, len: ^i32) -> cstring ---
-	str_get               :: proc(^Str) -> cstring ---
-	str_get_const         :: proc(^Str) -> cstring ---
-	str_len               :: proc(^Str) -> i32 ---
-	str_len_char          :: proc(^Str) -> i32 ---
+	str_init              :: proc(_: ^str, _: ^allocator, size: uint) ---
+	str_init_fixed        :: proc(_: ^str, memory: rawptr, size: uint) ---
+	str_clear             :: proc(^str) ---
+	str_free              :: proc(^str) ---
+	str_append_text_char  :: proc(^str, cstring, i32) -> i32 ---
+	str_append_str_char   :: proc(^str, cstring) -> i32 ---
+	str_append_text_utf8  :: proc(^str, cstring, i32) -> i32 ---
+	str_append_str_utf8   :: proc(^str, cstring) -> i32 ---
+	str_append_text_runes :: proc(^str, ^rune, i32) -> i32 ---
+	str_append_str_runes  :: proc(^str, ^rune) -> i32 ---
+	str_insert_at_char    :: proc(_: ^str, pos: i32, _: cstring, _: i32) -> i32 ---
+	str_insert_at_rune    :: proc(_: ^str, pos: i32, _: cstring, _: i32) -> i32 ---
+	str_insert_text_char  :: proc(_: ^str, pos: i32, _: cstring, _: i32) -> i32 ---
+	str_insert_str_char   :: proc(_: ^str, pos: i32, _: cstring) -> i32 ---
+	str_insert_text_utf8  :: proc(_: ^str, pos: i32, _: cstring, _: i32) -> i32 ---
+	str_insert_str_utf8   :: proc(_: ^str, pos: i32, _: cstring) -> i32 ---
+	str_insert_text_runes :: proc(_: ^str, pos: i32, _: ^rune, _: i32) -> i32 ---
+	str_insert_str_runes  :: proc(_: ^str, pos: i32, _: ^rune) -> i32 ---
+	str_remove_chars      :: proc(_: ^str, len: i32) ---
+	str_remove_runes      :: proc(str: ^str, len: i32) ---
+	str_delete_chars      :: proc(_: ^str, pos: i32, len: i32) ---
+	str_delete_runes      :: proc(_: ^str, pos: i32, len: i32) ---
+	str_at_char           :: proc(_: ^str, pos: i32) -> cstring ---
+	str_at_rune           :: proc(_: ^str, pos: i32, unicode: ^rune, len: ^i32) -> cstring ---
+	str_rune_at           :: proc(_: ^str, pos: i32) -> rune ---
+	str_at_char_const     :: proc(_: ^str, pos: i32) -> cstring ---
+	str_at_const          :: proc(_: ^str, pos: i32, unicode: ^rune, len: ^i32) -> cstring ---
+	str_get               :: proc(^str) -> cstring ---
+	str_get_const         :: proc(^str) -> cstring ---
+	str_len               :: proc(^str) -> i32 ---
+	str_len_char          :: proc(^str) -> i32 ---
 }
 
 TEXTEDIT_UNDOSTATECOUNT     :: 99
 TEXTEDIT_UNDOCHARCOUNT      :: 999
 
-Clipboard :: struct {
-	userdata: Handle,
-	paste:    Plugin_Paste,
-	copy:     Plugin_Copy,
+clipboard :: struct {
+	userdata: handle,
+	paste:    plugin_paste,
+	copy:     plugin_copy,
 }
 
-Text_Undo_Record :: struct {
+text_undo_record :: struct {
 	_where:        i32,
 	insert_length: i16,
 	delete_length: i16,
 	char_storage:  i16,
 }
 
-Text_Undo_State :: struct {
-	undo_rec:        [99]Text_Undo_Record,
+text_undo_state :: struct {
+	undo_rec:        [99]text_undo_record,
 	undo_char:       [999]rune,
 	undo_point:      i16,
 	redo_point:      i16,
@@ -3569,57 +3538,40 @@ Text_Undo_State :: struct {
 	redo_char_point: i16,
 }
 
-Text_Edit_Type :: enum i32 {
+text_edit_type :: enum u32 {
 	SINGLE_LINE = 0,
 	MULTI_LINE  = 1,
 }
 
-Text_Edit_Mode :: enum i32 {
+text_edit_mode :: enum u32 {
 	VIEW    = 0,
 	INSERT  = 1,
 	REPLACE = 2,
 }
 
-Text_Edit :: struct {
-	clip:                  Clipboard,
-	_string:               Str,
-	filter:                Plugin_Filter,
-	scrollbar:             Vec2,
-	cursor:                i32,
-	select_start:          i32,
-	select_end:            i32,
-	mode:                  u8,
-	cursor_at_end_of_line: u8,
-	initialized:           u8,
-	has_preferred_x:       u8,
-	single_line:           u8,
-	active:                u8,
-	padding1:              u8,
-	preferred_x:           f32,
-	undo:                  Text_Undo_State,
-}
+text_edit :: struct {}
 
 @(default_calling_convention="c", link_prefix="nk_")
 foreign lib {
 	/** filter function */
-	filter_default            :: proc(_: ^Text_Edit, unicode: rune) -> bool ---
-	filter_ascii              :: proc(_: ^Text_Edit, unicode: rune) -> bool ---
-	filter_float              :: proc(_: ^Text_Edit, unicode: rune) -> bool ---
-	filter_decimal            :: proc(_: ^Text_Edit, unicode: rune) -> bool ---
-	filter_hex                :: proc(_: ^Text_Edit, unicode: rune) -> bool ---
-	filter_oct                :: proc(_: ^Text_Edit, unicode: rune) -> bool ---
-	filter_binary             :: proc(_: ^Text_Edit, unicode: rune) -> bool ---
-	textedit_init             :: proc(_: ^Text_Edit, _: ^Allocator, size: uint) ---
-	textedit_init_fixed       :: proc(_: ^Text_Edit, memory: rawptr, size: uint) ---
-	textedit_free             :: proc(^Text_Edit) ---
-	textedit_text             :: proc(_: ^Text_Edit, _: cstring, total_len: i32) ---
-	textedit_delete           :: proc(_: ^Text_Edit, _where: i32, len: i32) ---
-	textedit_delete_selection :: proc(^Text_Edit) ---
-	textedit_select_all       :: proc(^Text_Edit) ---
-	textedit_cut              :: proc(^Text_Edit) -> bool ---
-	textedit_paste            :: proc(_: ^Text_Edit, _: cstring, len: i32) -> bool ---
-	textedit_undo             :: proc(^Text_Edit) ---
-	textedit_redo             :: proc(^Text_Edit) ---
+	filter_default            :: proc(_: ^text_edit, unicode: rune) -> bool ---
+	filter_ascii              :: proc(_: ^text_edit, unicode: rune) -> bool ---
+	filter_float              :: proc(_: ^text_edit, unicode: rune) -> bool ---
+	filter_decimal            :: proc(_: ^text_edit, unicode: rune) -> bool ---
+	filter_hex                :: proc(_: ^text_edit, unicode: rune) -> bool ---
+	filter_oct                :: proc(_: ^text_edit, unicode: rune) -> bool ---
+	filter_binary             :: proc(_: ^text_edit, unicode: rune) -> bool ---
+	textedit_init             :: proc(_: ^text_edit, _: ^allocator, size: uint) ---
+	textedit_init_fixed       :: proc(_: ^text_edit, memory: rawptr, size: uint) ---
+	textedit_free             :: proc(^text_edit) ---
+	textedit_text             :: proc(_: ^text_edit, _: cstring, total_len: i32) ---
+	textedit_delete           :: proc(_: ^text_edit, _where: i32, len: i32) ---
+	textedit_delete_selection :: proc(^text_edit) ---
+	textedit_select_all       :: proc(^text_edit) ---
+	textedit_cut              :: proc(^text_edit) -> bool ---
+	textedit_paste            :: proc(_: ^text_edit, _: cstring, len: i32) -> bool ---
+	textedit_undo             :: proc(^text_edit) ---
+	textedit_redo             :: proc(^text_edit) ---
 }
 
 /* ===============================================================
@@ -3675,7 +3627,7 @@ foreign lib {
 * update and draw your widget. The reason for separating is to only draw and
 * update what is actually necessary which is crucial for performance.
 */
-Command_Type :: enum i32 {
+command_type :: enum u32 {
 	NOP              = 0,
 	SCISSOR          = 1,
 	LINE             = 2,
@@ -3698,157 +3650,153 @@ Command_Type :: enum i32 {
 }
 
 /** command base and header of every command inside the buffer */
-Command :: struct {
-	type:     Command_Type,
-	next:     uint,
-	userdata: Handle,
-}
+command :: struct {}
 
-Command_Scissor :: struct {
-	header: Command,
+command_scissor :: struct {
+	header: command,
 	x, y:   i16,
 	w, h:   u16,
 }
 
-Command_Line :: struct {
-	header:         Command,
+command_line :: struct {
+	header:         command,
 	line_thickness: u16,
 	begin:          Vec2I,
 	end:            Vec2I,
-	color:          Color,
+	color:          color,
 }
 
-Command_Curve :: struct {
-	header:         Command,
+command_curve :: struct {
+	header:         command,
 	line_thickness: u16,
 	begin:          Vec2I,
 	end:            Vec2I,
 	ctrl:           [2]Vec2I,
-	color:          Color,
+	color:          color,
 }
 
-Command_Rect :: struct {
-	header:         Command,
+command_rect :: struct {
+	header:         command,
 	rounding:       u16,
 	line_thickness: u16,
 	x, y:           i16,
 	w, h:           u16,
-	color:          Color,
+	color:          color,
 }
 
-Command_Rect_Filled :: struct {
-	header:   Command,
+command_rect_filled :: struct {
+	header:   command,
 	rounding: u16,
 	x, y:     i16,
 	w, h:     u16,
-	color:    Color,
+	color:    color,
 }
 
-Command_Rect_Multi_Color :: struct {
-	header: Command,
+command_rect_multi_color :: struct {
+	header: command,
 	x, y:   i16,
 	w, h:   u16,
-	left:   Color,
-	top:    Color,
-	bottom: Color,
-	right:  Color,
+	left:   color,
+	top:    color,
+	bottom: color,
+	right:  color,
 }
 
-Command_Triangle :: struct {
-	header:         Command,
+command_triangle :: struct {
+	header:         command,
 	line_thickness: u16,
 	a:              Vec2I,
 	b:              Vec2I,
 	_c:             Vec2I,
-	color:          Color,
+	color:          color,
 }
 
-Command_Triangle_Filled :: struct {
-	header: Command,
+command_triangle_filled :: struct {
+	header: command,
 	a:      Vec2I,
 	b:      Vec2I,
 	_c:     Vec2I,
-	color:  Color,
+	color:  color,
 }
 
-Command_Circle :: struct {
-	header:         Command,
+command_circle :: struct {
+	header:         command,
 	x, y:           i16,
 	line_thickness: u16,
 	w, h:           u16,
-	color:          Color,
+	color:          color,
 }
 
-Command_Circle_Filled :: struct {
-	header: Command,
+command_circle_filled :: struct {
+	header: command,
 	x, y:   i16,
 	w, h:   u16,
-	color:  Color,
+	color:  color,
 }
 
-Command_Arc :: struct {
-	header:         Command,
+command_arc :: struct {
+	header:         command,
 	cx, cy:         i16,
 	r:              u16,
 	line_thickness: u16,
 	a:              [2]f32,
-	color:          Color,
+	color:          color,
 }
 
-Command_Arc_Filled :: struct {
-	header: Command,
+command_arc_filled :: struct {
+	header: command,
 	cx, cy: i16,
 	r:      u16,
 	a:      [2]f32,
-	color:  Color,
+	color:  color,
 }
 
-Command_Polygon :: struct {
-	header:         Command,
-	color:          Color,
+command_polygon :: struct {
+	header:         command,
+	color:          color,
 	line_thickness: u16,
 	point_count:    u16,
 	points:         [1]Vec2I,
 }
 
-Command_Polygon_Filled :: struct {
-	header:      Command,
-	color:       Color,
+command_polygon_filled :: struct {
+	header:      command,
+	color:       color,
 	point_count: u16,
 	points:      [1]Vec2I,
 }
 
-Command_Polyline :: struct {
-	header:         Command,
-	color:          Color,
+command_polyline :: struct {
+	header:         command,
+	color:          color,
 	line_thickness: u16,
 	point_count:    u16,
 	points:         [1]Vec2I,
 }
 
-Command_Image :: struct {
-	header: Command,
+command_image :: struct {
+	header: command,
 	x, y:   i16,
 	w, h:   u16,
-	img:    Image,
-	col:    Color,
+	img:    image,
+	col:    color,
 }
 
-Command_Custom_Callback :: proc "c" (canvas: rawptr, x: i16, y: i16, w: u16, h: u16, callback_data: Handle)
+command_custom_callback :: proc "c" (canvas: rawptr, x: i16, y: i16, w: u16, h: u16, callback_data: handle)
 
-Command_Custom :: struct {
-	header:        Command,
+command_custom :: struct {
+	header:        command,
 	x, y:          i16,
 	w, h:          u16,
-	callback_data: Handle,
-	callback:      Command_Custom_Callback,
+	callback_data: handle,
+	callback:      command_custom_callback,
 }
 
-Command_Text :: struct {
-	header:     Command,
-	font:       ^User_Font,
-	background: Color,
-	foreground: Color,
+command_text :: struct {
+	header:     command,
+	font:       ^user_font,
+	background: color,
+	foreground: color,
 	x, y:       i16,
 	w, h:       u16,
 	height:     f32,
@@ -3856,45 +3804,39 @@ Command_Text :: struct {
 	_string:    [2]i8,
 }
 
-Command_Clipping :: enum i32 {
+command_clipping :: enum u32 {
 	OFF = 0,
 	ON  = 1,
 }
 
-Command_Buffer :: struct {
-	base:             ^Buffer,
-	clip:             Rect,
-	use_clipping:     i32,
-	userdata:         Handle,
-	begin, end, last: uint,
-}
+command_buffer :: struct {}
 
 @(default_calling_convention="c", link_prefix="nk_")
 foreign lib {
 	/** shape outlines */
-	stroke_line     :: proc(b: ^Command_Buffer, x0: f32, y0: f32, x1: f32, y1: f32, line_thickness: f32, _: Color) ---
-	stroke_curve    :: proc(_: ^Command_Buffer, _: f32, _: f32, _: f32, _: f32, _: f32, _: f32, _: f32, _: f32, line_thickness: f32, _: Color) ---
-	stroke_rect     :: proc(_: ^Command_Buffer, _: Rect, rounding: f32, line_thickness: f32, _: Color) ---
-	stroke_circle   :: proc(_: ^Command_Buffer, _: Rect, line_thickness: f32, _: Color) ---
-	stroke_arc      :: proc(_: ^Command_Buffer, cx: f32, cy: f32, radius: f32, a_min: f32, a_max: f32, line_thickness: f32, _: Color) ---
-	stroke_triangle :: proc(_: ^Command_Buffer, _: f32, _: f32, _: f32, _: f32, _: f32, _: f32, line_thichness: f32, _: Color) ---
-	stroke_polyline :: proc(_: ^Command_Buffer, points: ^f32, point_count: i32, line_thickness: f32, col: Color) ---
-	stroke_polygon  :: proc(_: ^Command_Buffer, points: ^f32, point_count: i32, line_thickness: f32, _: Color) ---
+	stroke_line     :: proc(b: ^command_buffer, x0: f32, y0: f32, x1: f32, y1: f32, line_thickness: f32, _: color) ---
+	stroke_curve    :: proc(_: ^command_buffer, _: f32, _: f32, _: f32, _: f32, _: f32, _: f32, _: f32, _: f32, line_thickness: f32, _: color) ---
+	stroke_rect     :: proc(_: ^command_buffer, _: rect, rounding: f32, line_thickness: f32, _: color) ---
+	stroke_circle   :: proc(_: ^command_buffer, _: rect, line_thickness: f32, _: color) ---
+	stroke_arc      :: proc(_: ^command_buffer, cx: f32, cy: f32, radius: f32, a_min: f32, a_max: f32, line_thickness: f32, _: color) ---
+	stroke_triangle :: proc(_: ^command_buffer, _: f32, _: f32, _: f32, _: f32, _: f32, _: f32, line_thichness: f32, _: color) ---
+	stroke_polyline :: proc(_: ^command_buffer, points: ^f32, point_count: i32, line_thickness: f32, col: color) ---
+	stroke_polygon  :: proc(_: ^command_buffer, points: ^f32, point_count: i32, line_thickness: f32, _: color) ---
 
 	/** filled shades */
-	fill_rect             :: proc(_: ^Command_Buffer, _: Rect, rounding: f32, _: Color) ---
-	fill_rect_multi_color :: proc(_: ^Command_Buffer, _: Rect, left: Color, top: Color, right: Color, bottom: Color) ---
-	fill_circle           :: proc(^Command_Buffer, Rect, Color) ---
-	fill_arc              :: proc(_: ^Command_Buffer, cx: f32, cy: f32, radius: f32, a_min: f32, a_max: f32, _: Color) ---
-	fill_triangle         :: proc(_: ^Command_Buffer, x0: f32, y0: f32, x1: f32, y1: f32, x2: f32, y2: f32, _: Color) ---
-	fill_polygon          :: proc(_: ^Command_Buffer, points: ^f32, point_count: i32, _: Color) ---
+	fill_rect             :: proc(_: ^command_buffer, _: rect, rounding: f32, _: color) ---
+	fill_rect_multi_color :: proc(_: ^command_buffer, _: rect, left: color, top: color, right: color, bottom: color) ---
+	fill_circle           :: proc(^command_buffer, rect, color) ---
+	fill_arc              :: proc(_: ^command_buffer, cx: f32, cy: f32, radius: f32, a_min: f32, a_max: f32, _: color) ---
+	fill_triangle         :: proc(_: ^command_buffer, x0: f32, y0: f32, x1: f32, y1: f32, x2: f32, y2: f32, _: color) ---
+	fill_polygon          :: proc(_: ^command_buffer, points: ^f32, point_count: i32, _: color) ---
 
 	/** misc */
-	draw_image      :: proc(^Command_Buffer, Rect, ^Image, Color) ---
-	draw_nine_slice :: proc(^Command_Buffer, Rect, ^Nine_Slice, Color) ---
-	draw_text       :: proc(_: ^Command_Buffer, _: Rect, text: cstring, len: i32, _: ^User_Font, _: Color, _: Color) ---
-	push_scissor    :: proc(^Command_Buffer, Rect) ---
-	push_custom     :: proc(_: ^Command_Buffer, _: Rect, _: Command_Custom_Callback, usr: Handle) ---
+	draw_image      :: proc(^command_buffer, rect, ^image, color) ---
+	draw_nine_slice :: proc(^command_buffer, rect, ^nine_slice, color) ---
+	draw_text       :: proc(_: ^command_buffer, _: rect, text: cstring, len: i32, _: ^user_font, _: color, _: color) ---
+	push_scissor    :: proc(^command_buffer, rect) ---
+	push_custom     :: proc(_: ^command_buffer, _: rect, _: command_custom_callback, usr: handle) ---
 }
 
 /* ===============================================================
@@ -3902,58 +3844,62 @@ foreign lib {
 *                          INPUT
 *
 * ===============================================================*/
-Mouse_Button :: struct {
+mouse_button :: struct {
 	down:        bool,
 	clicked:     u32,
-	clicked_pos: Vec2,
+	clicked_pos: vec2,
 }
 
-Mouse :: struct {
-	buttons:      [4]Mouse_Button,
-	pos:          Vec2,
-	prev:         Vec2,
-	delta:        Vec2,
-	scroll_delta: Vec2,
+mouse :: struct {
+	buttons:      [6]mouse_button,
+	pos:          vec2,
+	prev:         vec2,
+	delta:        vec2,
+	scroll_delta: vec2,
 	grab:         u8,
 	grabbed:      u8,
 	ungrab:       u8,
 }
 
-Key :: struct {
+key :: struct {
 	down:    bool,
 	clicked: u32,
 }
 
-Keyboard :: struct {
-	keys:     [30]Key,
+keyboard :: struct {
+	keys:     [43]key,
 	text:     [16]i8,
 	text_len: i32,
 }
 
-Input :: struct {
-	keyboard: Keyboard,
-	mouse:    Mouse,
+input :: struct {
+	keyboard: keyboard,
+	mouse:    mouse,
 }
 
 @(default_calling_convention="c", link_prefix="nk_")
 foreign lib {
-	input_has_mouse_click                :: proc(^Input, Buttons) -> bool ---
-	input_has_mouse_click_in_rect        :: proc(^Input, Buttons, Rect) -> bool ---
-	input_has_mouse_click_in_button_rect :: proc(^Input, Buttons, Rect) -> bool ---
-	input_has_mouse_click_down_in_rect   :: proc(_: ^Input, _: Buttons, _: Rect, down: bool) -> bool ---
-	input_is_mouse_click_in_rect         :: proc(^Input, Buttons, Rect) -> bool ---
-	input_is_mouse_click_down_in_rect    :: proc(i: ^Input, id: Buttons, b: Rect, down: bool) -> bool ---
-	input_any_mouse_click_in_rect        :: proc(^Input, Rect) -> bool ---
-	input_is_mouse_prev_hovering_rect    :: proc(^Input, Rect) -> bool ---
-	input_is_mouse_hovering_rect         :: proc(^Input, Rect) -> bool ---
-	input_is_mouse_moved                 :: proc(^Input) -> bool ---
-	input_mouse_clicked                  :: proc(^Input, Buttons, Rect) -> bool ---
-	input_is_mouse_down                  :: proc(^Input, Buttons) -> bool ---
-	input_is_mouse_pressed               :: proc(^Input, Buttons) -> bool ---
-	input_is_mouse_released              :: proc(^Input, Buttons) -> bool ---
-	input_is_key_pressed                 :: proc(^Input, Keys) -> bool ---
-	input_is_key_released                :: proc(^Input, Keys) -> bool ---
-	input_is_key_down                    :: proc(^Input, Keys) -> bool ---
+	input_has_mouse_click                            :: proc(^input, buttons) -> bool ---
+	input_has_mouse_click_in_rect                    :: proc(^input, buttons, rect) -> bool ---
+	input_has_mouse_click_in_button_rect             :: proc(^input, buttons, rect) -> bool ---
+	input_has_mouse_click_down_in_rect               :: proc(_: ^input, _: buttons, _: rect, down: bool) -> bool ---
+	input_is_mouse_click_in_rect                     :: proc(^input, buttons, rect) -> bool ---
+	input_is_mouse_click_down_in_rect                :: proc(i: ^input, id: buttons, b: rect, down: bool) -> bool ---
+	input_any_mouse_click_in_rect                    :: proc(^input, rect) -> bool ---
+	input_is_mouse_prev_hovering_rect                :: proc(^input, rect) -> bool ---
+	input_is_mouse_hovering_rect                     :: proc(^input, rect) -> bool ---
+	input_is_mouse_hovering_still_rect               :: proc(^input, rect) -> bool ---
+	input_is_mouse_hovering_delay_rect               :: proc(^context, rect, ^f32, f32) -> bool ---
+	input_is_mouse_hovering_still_delay_rect         :: proc(^context, rect, ^f32, f32) -> bool ---
+	input_is_mouse_hovering_still_delay_clicked_rect :: proc(^context, rect, ^f32, f32, ^bool) -> bool ---
+	input_is_mouse_moved                             :: proc(^input) -> bool ---
+	input_mouse_clicked                              :: proc(^input, buttons, rect) -> bool ---
+	input_is_mouse_down                              :: proc(^input, buttons) -> bool ---
+	input_is_mouse_pressed                           :: proc(^input, buttons) -> bool ---
+	input_is_mouse_released                          :: proc(^input, buttons) -> bool ---
+	input_is_key_pressed                             :: proc(^input, keys) -> bool ---
+	input_is_key_released                            :: proc(^input, keys) -> bool ---
+	input_is_key_down                                :: proc(^input, keys) -> bool ---
 }
 
 /* ===============================================================
@@ -3961,508 +3907,159 @@ foreign lib {
 *                          GUI
 *
 * ===============================================================*/
-Style_Item_Type :: enum i32 {
+style_item_type :: enum u32 {
 	COLOR      = 0,
 	IMAGE      = 1,
 	NINE_SLICE = 2,
 }
 
-Style_Item_Data :: struct #raw_union {
-	color: Color,
-	image: Image,
-	slice: Nine_Slice,
+style_item_data :: struct #raw_union {
+	color: color,
+	image: image,
+	slice: nine_slice,
 }
 
-Style_Item :: struct {
-	type: Style_Item_Type,
-	data: Style_Item_Data,
-}
+style_item :: struct {}
 
-Style_Text :: struct {
-	color:           Color,
-	padding:         Vec2,
+style_text :: struct {
+	color:           color,
+	padding:         vec2,
 	color_factor:    f32,
 	disabled_factor: f32,
 }
 
-Style_Button :: struct {
+style_button     :: struct {}
+style_toggle     :: struct {}
+style_selectable :: struct {}
+
+style_slider :: struct {
 	/* background */
-	normal:                  Style_Item,
-	hover:                   Style_Item,
-	active:                  Style_Item,
-	border_color:            Color,
-	color_factor_background: f32,
-
-	/* text */
-	text_background:   Color,
-	text_normal:       Color,
-	text_hover:        Color,
-	text_active:       Color,
-	text_alignment:    Flags,
-	color_factor_text: f32,
-
-	/* properties */
-	border:          f32,
-	rounding:        f32,
-	padding:         Vec2,
-	image_padding:   Vec2,
-	touch_padding:   Vec2,
-	disabled_factor: f32,
-
-	/* optional user callbacks */
-	userdata:   Handle,
-	draw_begin: proc "c" (_: ^Command_Buffer, userdata: Handle),
-	draw_end:   proc "c" (_: ^Command_Buffer, userdata: Handle),
-}
-
-Style_Toggle :: struct {
-	/* background */
-	normal:       Style_Item,
-	hover:        Style_Item,
-	active:       Style_Item,
-	border_color: Color,
-
-	/* cursor */
-	cursor_normal: Style_Item,
-	cursor_hover:  Style_Item,
-
-	/* text */
-	text_normal:     Color,
-	text_hover:      Color,
-	text_active:     Color,
-	text_background: Color,
-	text_alignment:  Flags,
-
-	/* properties */
-	padding:         Vec2,
-	touch_padding:   Vec2,
-	spacing:         f32,
-	border:          f32,
-	color_factor:    f32,
-	disabled_factor: f32,
-
-	/* optional user callbacks */
-	userdata:   Handle,
-	draw_begin: proc "c" (^Command_Buffer, Handle),
-	draw_end:   proc "c" (^Command_Buffer, Handle),
-}
-
-Style_Selectable :: struct {
-	/* background (inactive) */
-	normal:  Style_Item,
-	hover:   Style_Item,
-	pressed: Style_Item,
-
-	/* background (active) */
-	normal_active:  Style_Item,
-	hover_active:   Style_Item,
-	pressed_active: Style_Item,
-
-	/* text color (inactive) */
-	text_normal:  Color,
-	text_hover:   Color,
-	text_pressed: Color,
-
-	/* text color (active) */
-	text_normal_active:  Color,
-	text_hover_active:   Color,
-	text_pressed_active: Color,
-	text_background:     Color,
-	text_alignment:      Flags,
-
-	/* properties */
-	rounding:        f32,
-	padding:         Vec2,
-	touch_padding:   Vec2,
-	image_padding:   Vec2,
-	color_factor:    f32,
-	disabled_factor: f32,
-
-	/* optional user callbacks */
-	userdata:   Handle,
-	draw_begin: proc "c" (^Command_Buffer, Handle),
-	draw_end:   proc "c" (^Command_Buffer, Handle),
-}
-
-Style_Slider :: struct {
-	/* background */
-	normal:       Style_Item,
-	hover:        Style_Item,
-	active:       Style_Item,
-	border_color: Color,
+	normal:       style_item,
+	hover:        style_item,
+	active:       style_item,
+	border_color: color,
 
 	/* background bar */
-	bar_normal: Color,
-	bar_hover:  Color,
-	bar_active: Color,
-	bar_filled: Color,
+	bar_normal: color,
+	bar_hover:  color,
+	bar_active: color,
+	bar_filled: color,
 
 	/* cursor */
-	cursor_normal: Style_Item,
-	cursor_hover:  Style_Item,
-	cursor_active: Style_Item,
+	cursor_normal: style_item,
+	cursor_hover:  style_item,
+	cursor_active: style_item,
 
 	/* properties */
 	border:          f32,
 	rounding:        f32,
 	bar_height:      f32,
-	padding:         Vec2,
-	spacing:         Vec2,
-	cursor_size:     Vec2,
+	padding:         vec2,
+	spacing:         vec2,
+	cursor_size:     vec2, /* NOTE y has no effect on vertex buffer backends */
 	color_factor:    f32,
 	disabled_factor: f32,
 
 	/* optional buttons */
 	show_buttons: i32,
-	inc_button:   Style_Button,
-	dec_button:   Style_Button,
-	inc_symbol:   Symbol_Type,
-	dec_symbol:   Symbol_Type,
+	inc_button:   style_button,
+	dec_button:   style_button,
+	inc_symbol:   symbol_type,
+	dec_symbol:   symbol_type,
 
 	/* optional user callbacks */
-	userdata:   Handle,
-	draw_begin: proc "c" (^Command_Buffer, Handle),
-	draw_end:   proc "c" (^Command_Buffer, Handle),
+	userdata:   handle,
+	draw_begin: proc "c" (^command_buffer, handle),
+	draw_end:   proc "c" (^command_buffer, handle),
 }
 
-Style_Knob :: struct {
+style_knob :: struct {
 	/* background */
-	normal:       Style_Item,
-	hover:        Style_Item,
-	active:       Style_Item,
-	border_color: Color,
+	normal:       style_item,
+	hover:        style_item,
+	active:       style_item,
+	border_color: color,
 
 	/* knob */
-	knob_normal:       Color,
-	knob_hover:        Color,
-	knob_active:       Color,
-	knob_border_color: Color,
+	knob_normal:       color,
+	knob_hover:        color,
+	knob_active:       color,
+	knob_border_color: color,
 
 	/* cursor */
-	cursor_normal: Color,
-	cursor_hover:  Color,
-	cursor_active: Color,
+	cursor_normal: color,
+	cursor_hover:  color,
+	cursor_active: color,
 
 	/* properties */
 	border:          f32,
 	knob_border:     f32,
-	padding:         Vec2,
-	spacing:         Vec2,
+	padding:         vec2,
+	spacing:         vec2,
 	cursor_width:    f32,
 	color_factor:    f32,
 	disabled_factor: f32,
 
 	/* optional user callbacks */
-	userdata:   Handle,
-	draw_begin: proc "c" (^Command_Buffer, Handle),
-	draw_end:   proc "c" (^Command_Buffer, Handle),
+	userdata:   handle,
+	draw_begin: proc "c" (^command_buffer, handle),
+	draw_end:   proc "c" (^command_buffer, handle),
 }
 
-Style_Progress :: struct {
-	/* background */
-	normal:       Style_Item,
-	hover:        Style_Item,
-	active:       Style_Item,
-	border_color: Color,
+style_progress  :: struct {}
+style_scrollbar :: struct {}
+style_edit      :: struct {}
+style_property  :: struct {}
+style_chart     :: struct {}
+style_combo     :: struct {}
+style_tab       :: struct {}
 
-	/* cursor */
-	cursor_normal:       Style_Item,
-	cursor_hover:        Style_Item,
-	cursor_active:       Style_Item,
-	cursor_border_color: Color,
-
-	/* properties */
-	rounding:        f32,
-	border:          f32,
-	cursor_border:   f32,
-	cursor_rounding: f32,
-	padding:         Vec2,
-	color_factor:    f32,
-	disabled_factor: f32,
-
-	/* optional user callbacks */
-	userdata:   Handle,
-	draw_begin: proc "c" (^Command_Buffer, Handle),
-	draw_end:   proc "c" (^Command_Buffer, Handle),
-}
-
-Style_Scrollbar :: struct {
-	/* background */
-	normal:       Style_Item,
-	hover:        Style_Item,
-	active:       Style_Item,
-	border_color: Color,
-
-	/* cursor */
-	cursor_normal:       Style_Item,
-	cursor_hover:        Style_Item,
-	cursor_active:       Style_Item,
-	cursor_border_color: Color,
-
-	/* properties */
-	border:          f32,
-	rounding:        f32,
-	border_cursor:   f32,
-	rounding_cursor: f32,
-	padding:         Vec2,
-	color_factor:    f32,
-	disabled_factor: f32,
-
-	/* optional buttons */
-	show_buttons: i32,
-	inc_button:   Style_Button,
-	dec_button:   Style_Button,
-	inc_symbol:   Symbol_Type,
-	dec_symbol:   Symbol_Type,
-
-	/* optional user callbacks */
-	userdata:   Handle,
-	draw_begin: proc "c" (^Command_Buffer, Handle),
-	draw_end:   proc "c" (^Command_Buffer, Handle),
-}
-
-Style_Edit :: struct {
-	/* background */
-	normal:       Style_Item,
-	hover:        Style_Item,
-	active:       Style_Item,
-	border_color: Color,
-	scrollbar:    Style_Scrollbar,
-
-	/* cursor  */
-	cursor_normal:      Color,
-	cursor_hover:       Color,
-	cursor_text_normal: Color,
-	cursor_text_hover:  Color,
-
-	/* text (unselected) */
-	text_normal: Color,
-	text_hover:  Color,
-	text_active: Color,
-
-	/* text (selected) */
-	selected_normal:      Color,
-	selected_hover:       Color,
-	selected_text_normal: Color,
-	selected_text_hover:  Color,
-
-	/* properties */
-	border:          f32,
-	rounding:        f32,
-	cursor_size:     f32,
-	scrollbar_size:  Vec2,
-	padding:         Vec2,
-	row_padding:     f32,
-	color_factor:    f32,
-	disabled_factor: f32,
-}
-
-Style_Property :: struct {
-	/* background */
-	normal:       Style_Item,
-	hover:        Style_Item,
-	active:       Style_Item,
-	border_color: Color,
-
-	/* text */
-	label_normal: Color,
-	label_hover:  Color,
-	label_active: Color,
-
-	/* symbols */
-	sym_left:  Symbol_Type,
-	sym_right: Symbol_Type,
-
-	/* properties */
-	border:          f32,
-	rounding:        f32,
-	padding:         Vec2,
-	color_factor:    f32,
-	disabled_factor: f32,
-	edit:            Style_Edit,
-	inc_button:      Style_Button,
-	dec_button:      Style_Button,
-
-	/* optional user callbacks */
-	userdata:   Handle,
-	draw_begin: proc "c" (^Command_Buffer, Handle),
-	draw_end:   proc "c" (^Command_Buffer, Handle),
-}
-
-Style_Chart :: struct {
-	/* colors */
-	background:     Style_Item,
-	border_color:   Color,
-	selected_color: Color,
-	color:          Color,
-
-	/* properties */
-	border:          f32,
-	rounding:        f32,
-	padding:         Vec2,
-	color_factor:    f32,
-	disabled_factor: f32,
-	show_markers:    bool,
-}
-
-Style_Combo :: struct {
-	/* background */
-	normal:       Style_Item,
-	hover:        Style_Item,
-	active:       Style_Item,
-	border_color: Color,
-
-	/* label */
-	label_normal: Color,
-	label_hover:  Color,
-	label_active: Color,
-
-	/* symbol */
-	symbol_normal: Color,
-	symbol_hover:  Color,
-	symbol_active: Color,
-
-	/* button */
-	button:     Style_Button,
-	sym_normal: Symbol_Type,
-	sym_hover:  Symbol_Type,
-	sym_active: Symbol_Type,
-
-	/* properties */
-	border:          f32,
-	rounding:        f32,
-	content_padding: Vec2,
-	button_padding:  Vec2,
-	spacing:         Vec2,
-	color_factor:    f32,
-	disabled_factor: f32,
-}
-
-Style_Tab :: struct {
-	/* background */
-	background:   Style_Item,
-	border_color: Color,
-	text:         Color,
-
-	/* button */
-	tab_maximize_button:  Style_Button,
-	tab_minimize_button:  Style_Button,
-	node_maximize_button: Style_Button,
-	node_minimize_button: Style_Button,
-	sym_minimize:         Symbol_Type,
-	sym_maximize:         Symbol_Type,
-
-	/* properties */
-	border:          f32,
-	rounding:        f32,
-	indent:          f32,
-	padding:         Vec2,
-	spacing:         Vec2,
-	color_factor:    f32,
-	disabled_factor: f32,
-}
-
-Style_Header_Align :: enum i32 {
+style_header_align :: enum u32 {
 	LEFT  = 0,
 	RIGHT = 1,
 }
 
-Style_Window_Header :: struct {
-	/* background */
-	normal: Style_Item,
-	hover:  Style_Item,
-	active: Style_Item,
+style_window_header :: struct {}
+style_window        :: struct {}
 
-	/* button */
-	close_button:    Style_Button,
-	minimize_button: Style_Button,
-	close_symbol:    Symbol_Type,
-	minimize_symbol: Symbol_Type,
-	maximize_symbol: Symbol_Type,
-
-	/* title */
-	label_normal: Color,
-	label_hover:  Color,
-	label_active: Color,
-
-	/* properties */
-	align:         Style_Header_Align,
-	padding:       Vec2,
-	label_padding: Vec2,
-	spacing:       Vec2,
-}
-
-Style_Window :: struct {
-	header:                  Style_Window_Header,
-	fixed_background:        Style_Item,
-	background:              Color,
-	border_color:            Color,
-	popup_border_color:      Color,
-	combo_border_color:      Color,
-	contextual_border_color: Color,
-	menu_border_color:       Color,
-	group_border_color:      Color,
-	tooltip_border_color:    Color,
-	scaler:                  Style_Item,
-	border:                  f32,
-	combo_border:            f32,
-	contextual_border:       f32,
-	menu_border:             f32,
-	group_border:            f32,
-	tooltip_border:          f32,
-	popup_border:            f32,
-	min_row_height_padding:  f32,
-	rounding:                f32,
-	spacing:                 Vec2,
-	scrollbar_size:          Vec2,
-	min_size:                Vec2,
-	padding:                 Vec2,
-	group_padding:           Vec2,
-	popup_padding:           Vec2,
-	combo_padding:           Vec2,
-	contextual_padding:      Vec2,
-	menu_padding:            Vec2,
-	tooltip_padding:         Vec2,
-}
-
-Style :: struct {
-	font:              ^User_Font,
-	cursors:           [7]^Cursor,
-	cursor_active:     ^Cursor,
-	cursor_last:       ^Cursor,
+style :: struct {
+	font:              ^user_font,
+	cursors:           [7]^cursor,
+	cursor_active:     ^cursor,
+	cursor_last:       ^cursor,
 	cursor_visible:    i32,
-	text:              Style_Text,
-	button:            Style_Button,
-	contextual_button: Style_Button,
-	menu_button:       Style_Button,
-	option:            Style_Toggle,
-	checkbox:          Style_Toggle,
-	selectable:        Style_Selectable,
-	slider:            Style_Slider,
-	knob:              Style_Knob,
-	progress:          Style_Progress,
-	property:          Style_Property,
-	edit:              Style_Edit,
-	chart:             Style_Chart,
-	scrollh:           Style_Scrollbar,
-	scrollv:           Style_Scrollbar,
-	tab:               Style_Tab,
-	combo:             Style_Combo,
-	window:            Style_Window,
+	text:              style_text,
+	button:            style_button,
+	contextual_button: style_button,
+	menu_button:       style_button,
+	option:            style_toggle,
+	checkbox:          style_toggle,
+	selectable:        style_selectable,
+	slider:            style_slider,
+	knob:              style_knob,
+	progress:          style_progress,
+	property:          style_property,
+	edit:              style_edit,
+	chart:             style_chart,
+	scrollh:           style_scrollbar,
+	scrollv:           style_scrollbar,
+	tab:               style_tab,
+	combo:             style_combo,
+	window:            style_window,
 }
 
 @(default_calling_convention="c", link_prefix="nk_")
 foreign lib {
-	style_item_color      :: proc(Color) -> Style_Item ---
-	style_item_image      :: proc(img: Image) -> Style_Item ---
-	style_item_nine_slice :: proc(slice: Nine_Slice) -> Style_Item ---
-	style_item_hide       :: proc() -> Style_Item ---
+	style_item_color      :: proc(color) -> style_item ---
+	style_item_image      :: proc(img: image) -> style_item ---
+	style_item_nine_slice :: proc(slice: nine_slice) -> style_item ---
+	style_item_hide       :: proc() -> style_item ---
 }
 
 MAX_LAYOUT_ROW_TEMPLATE_COLUMNS :: 16
 CHART_MAX_SLOT                  :: 4
 
-Panel_Type :: enum i32 {
+panel_type :: enum u32 {
 	NONE       = 0,
 	WINDOW     = 1,
 	GROUP      = 2,
@@ -4473,30 +4070,30 @@ Panel_Type :: enum i32 {
 	TOOLTIP    = 128,
 }
 
-Panel_Set :: enum i32 {
+panel_set :: enum u32 {
 	NONBLOCK = 240,
 	POPUP    = 244,
 	SUB      = 246,
 }
 
-Chart_Slot :: struct {
-	type:            Chart_Type,
-	color:           Color,
-	highlight:       Color,
+chart_slot :: struct {
+	type:            chart_type,
+	color:           color,
+	highlight:       color,
 	min, max, range: f32,
 	count:           i32,
-	last:            Vec2,
+	last:            vec2,
 	index:           i32,
 	show_markers:    bool,
 }
 
-Chart :: struct {
+chart :: struct {
 	slot:       i32,
 	x, y, w, h: f32,
-	slots:      [4]Chart_Slot,
+	slots:      [4]chart_slot,
 }
 
-Panel_Row_Layout_Type :: enum i32 {
+panel_row_layout_type :: enum u32 {
 	DYNAMIC_FIXED = 0,
 	DYNAMIC_ROW   = 1,
 	DYNAMIC_FREE  = 2,
@@ -4508,8 +4105,8 @@ Panel_Row_Layout_Type :: enum i32 {
 	TEMPLATE      = 8,
 }
 
-Row_Layout :: struct {
-	type:        Panel_Row_Layout_Type,
+row_layout :: struct {
+	type:        panel_row_layout_type,
 	index:       i32,
 	height:      f32,
 	min_height:  f32,
@@ -4519,12 +4116,12 @@ Row_Layout :: struct {
 	item_height: f32,
 	item_offset: f32,
 	filled:      f32,
-	item:        Rect,
+	item:        rect,
 	tree_depth:  i32,
 	templates:   [16]f32,
 }
 
-Popup_Buffer :: struct {
+popup_buffer :: struct {
 	begin:  uint,
 	parent: uint,
 	last:   uint,
@@ -4532,33 +4129,16 @@ Popup_Buffer :: struct {
 	active: bool,
 }
 
-Menu_State :: struct {
+menu_state :: struct {
 	x, y, w, h: f32,
-	offset:     Scroll,
+	offset:     scroll,
 }
 
-Panel :: struct {
-	type:              Panel_Type,
-	flags:             Flags,
-	bounds:            Rect,
-	offset_x:          ^u32,
-	offset_y:          ^u32,
-	at_x, at_y, max_x: f32,
-	footer_height:     f32,
-	header_height:     f32,
-	border:            f32,
-	has_scrolling:     u32,
-	clip:              Rect,
-	menu:              Menu_State,
-	row:               Row_Layout,
-	chart:             Chart,
-	buffer:            ^Command_Buffer,
-	parent:            ^Panel,
-}
+panel :: struct {}
 
 WINDOW_MAX_NAME :: 64
 
-Window_Flags :: enum i32 {
+window_flags :: enum u32 {
 	PRIVATE         = 2048,
 	DYNAMIC         = 2048,  /**< special window type growing up in height while being filled to a certain maximum height */
 	ROM             = 4096,  /**< sets window widgets into a read only mode and does not allow input changes */
@@ -4569,19 +4149,19 @@ Window_Flags :: enum i32 {
 	REMOVE_ROM      = 65536, /**< Removes read only mode at the end of the window */
 }
 
-Popup_State :: struct {
-	win:                ^Window,
-	type:               Panel_Type,
-	buf:                Popup_Buffer,
+popup_state :: struct {
+	win:                ^window,
+	type:               panel_type,
+	buf:                popup_buffer,
 	name:               Hash,
 	active:             bool,
 	combo_count:        u32,
 	con_count, con_old: u32,
 	active_con:         u32,
-	header:             Rect,
+	header:             rect,
 }
 
-Edit_State :: struct {
+edit_state :: struct {
 	name:         Hash,
 	seq:          u32,
 	old:          u32,
@@ -4589,12 +4169,12 @@ Edit_State :: struct {
 	cursor:       i32,
 	sel_start:    i32,
 	sel_end:      i32,
-	scrollbar:    Scroll,
+	scrollbar:    scroll,
 	mode:         u8,
 	single_line:  u8,
 }
 
-Property_State :: struct {
+property_state :: struct {
 	active, prev: i32,
 	buffer:       [64]i8,
 	length:       i32,
@@ -4611,31 +4191,7 @@ Property_State :: struct {
 	prev_length:  i32,
 }
 
-Window :: struct {
-	seq:                    u32,
-	name:                   Hash,
-	name_string:            [64]i8,
-	flags:                  Flags,
-	bounds:                 Rect,
-	scrollbar:              Scroll,
-	buffer:                 Command_Buffer,
-	layout:                 ^Panel,
-	scrollbar_hiding_timer: f32,
-
-	/* persistent widget state */
-	property:         Property_State,
-	popup:            Popup_State,
-	edit:             Edit_State,
-	scrolled:         u32,
-	widgets_disabled: bool,
-	tables:           ^Table,
-	table_count:      u32,
-
-	/* window list hooks */
-	next:   ^Window,
-	prev:   ^Window,
-	parent: ^Window,
-}
+window :: struct {}
 
 BUTTON_BEHAVIOR_STACK_SIZE :: 8
 FONT_STACK_SIZE            :: 8
@@ -4645,156 +4201,118 @@ VECTOR_STACK_SIZE          :: 16
 FLAGS_STACK_SIZE           :: 32
 COLOR_STACK_SIZE           :: 32
 
-Config_Stack_Style_Item_Element :: struct {
-	address:   ^Style_Item,
-	old_value: Style_Item,
+config_stack_style_item_element :: struct {
+	address:   ^style_item,
+	old_value: style_item,
 }
 
-Config_Stack_Float_Element :: struct {
+config_stack_float_element :: struct {
 	address:   ^f32,
 	old_value: f32,
 }
 
-Config_Stack_Vec2_Element :: struct {
-	address:   ^Vec2,
-	old_value: Vec2,
+config_stack_vec2_element :: struct {
+	address:   ^vec2,
+	old_value: vec2,
 }
 
-Config_Stack_Flags_Element :: struct {
+config_stack_flags_element :: struct {
 	address:   ^Flags,
 	old_value: Flags,
 }
 
-Config_Stack_Color_Element :: struct {
-	address:   ^Color,
-	old_value: Color,
+config_stack_color_element :: struct {
+	address:   ^color,
+	old_value: color,
 }
 
-Config_Stack_User_Font_Element :: struct {
-	address:   ^^User_Font,
-	old_value: ^User_Font,
+config_stack_user_font_element :: struct {
+	address:   ^^user_font,
+	old_value: ^user_font,
 }
 
-Config_Stack_Button_Behavior_Element :: struct {
-	address:   ^Button_Behavior,
-	old_value: Button_Behavior,
+config_stack_button_behavior_element :: struct {
+	address:   ^button_behavior,
+	old_value: button_behavior,
 }
 
-Config_Stack_Style_Item :: struct {
+config_stack_style_item :: struct {
 	head:     i32,
-	elements: [16]Config_Stack_Style_Item_Element,
+	elements: [16]config_stack_style_item_element,
 }
 
-Config_Stack_Float :: struct {
+config_stack_float :: struct {
 	head:     i32,
-	elements: [32]Config_Stack_Float_Element,
+	elements: [32]config_stack_float_element,
 }
 
-Config_Stack_Vec2 :: struct {
+config_stack_vec2 :: struct {
 	head:     i32,
-	elements: [16]Config_Stack_Vec2_Element,
+	elements: [16]config_stack_vec2_element,
 }
 
-Config_Stack_Flags :: struct {
+config_stack_flags :: struct {
 	head:     i32,
-	elements: [32]Config_Stack_Flags_Element,
+	elements: [32]config_stack_flags_element,
 }
 
-Config_Stack_Color :: struct {
+config_stack_color :: struct {
 	head:     i32,
-	elements: [32]Config_Stack_Color_Element,
+	elements: [32]config_stack_color_element,
 }
 
-Config_Stack_User_Font :: struct {
+config_stack_user_font :: struct {
 	head:     i32,
-	elements: [8]Config_Stack_User_Font_Element,
+	elements: [8]config_stack_user_font_element,
 }
 
-Config_Stack_Button_Behavior :: struct {
+config_stack_button_behavior :: struct {
 	head:     i32,
-	elements: [8]Config_Stack_Button_Behavior_Element,
+	elements: [8]config_stack_button_behavior_element,
 }
 
-Configuration_Stacks :: struct {
-	style_items:      Config_Stack_Style_Item,
-	floats:           Config_Stack_Float,
-	vectors:          Config_Stack_Vec2,
-	flags:            Config_Stack_Flags,
-	colors:           Config_Stack_Color,
-	fonts:            Config_Stack_User_Font,
-	button_behaviors: Config_Stack_Button_Behavior,
+configuration_stacks :: struct {
+	style_items:      config_stack_style_item,
+	floats:           config_stack_float,
+	vectors:          config_stack_vec2,
+	flags:            config_stack_flags,
+	colors:           config_stack_color,
+	fonts:            config_stack_user_font,
+	button_behaviors: config_stack_button_behavior,
 }
 
-Table :: struct {
-	seq:        u32,
-	size:       u32,
-	keys:       [69]Hash,
-	values:     [69]u32,
-	next, prev: ^Table,
+table :: struct {}
+
+page_data :: struct #raw_union {
+	tbl: table,
+	pan: panel,
+	win: window,
 }
 
-Page_Data :: struct #raw_union {
-	tbl: Table,
-	pan: Panel,
-	win: Window,
+page_element :: struct {
+	data: page_data,
+	next: ^page_element,
+	prev: ^page_element,
 }
 
-Page_Element :: struct {
-	data: Page_Data,
-	next: ^Page_Element,
-	prev: ^Page_Element,
-}
-
-Page :: struct {
+page :: struct {
 	size: u32,
-	next: ^Page,
-	win:  [1]Page_Element,
+	next: ^page,
+	win:  [1]page_element,
 }
 
-Pool :: struct {
-	alloc:      Allocator,
-	type:       Allocation_Type,
+pool :: struct {
+	alloc:      allocator,
+	type:       allocation_type,
 	page_count: u32,
-	pages:      ^Page,
-	freelist:   ^Page_Element,
+	pages:      ^page,
+	freelist:   ^page_element,
 	capacity:   u32,
 	size:       uint,
 	cap:        uint,
 }
 
-Context :: struct {
-	/* public: can be accessed freely */
-	input:              Input,
-	style:              Style,
-	memory:             Buffer,
-	clip:               Clipboard,
-	last_widget_state:  Flags,
-	button_behavior:    Button_Behavior,
-	stacks:             Configuration_Stacks,
-	delta_time_seconds: f32,
-	userdata:           Handle,
-
-	/** text editor objects are quite big because of an internal
-	* undo/redo stack. Therefore it does not make sense to have one for
-	* each window for temporary use cases, so I only provide *one* instance
-	* for all windows. This works because the content is cleared anyway */
-	text_edit: Text_Edit,
-
-	/** draw buffer used for overlay drawing operation like cursor */
-	overlay: Command_Buffer,
-
-	/** windows */
-	build:    i32,
-	use_pool: i32,
-	pool:     Pool,
-	begin:    ^Window,
-	end:      ^Window,
-	active:   ^Window,
-	current:  ^Window,
-	freelist: ^Page_Element,
-	count:    u32,
-	seq:      u32,
-}
+context :: struct {}
 
 /* ==============================================================
 *                          MATH

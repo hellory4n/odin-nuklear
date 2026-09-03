@@ -13,6 +13,14 @@ when ODIN_OS == .Windows && ODIN_ARCH == .amd64 {
     }
 }
 
+when ODIN_OS == .Linux && ODIN_ARCH == .amd64 {
+    when ODIN_DEBUG {
+        @(export) foreign import lib "libnuklear_linux_amd64_debug.lib"
+    } else {
+        @(export) foreign import lib "libnuklear_linux_amd64_release.lib"
+    }
+}
+
 when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
     when ODIN_DEBUG {
         @(export) foreign import lib "nuklear_wasm_debug.lib"
